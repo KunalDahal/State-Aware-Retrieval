@@ -92,6 +92,7 @@
 
 \setlength{\parindent}{0pt}
 \setlength{\parskip}{0pt}
+\AtBeginDocument{\setlength{\parindent}{0pt}}
 
 \onehalfspacing
 
@@ -450,17 +451,13 @@ Retrieval-Augmented Generation, Information Retrieval, MIGRES, Gap-Aware Retriev
 \hline
 2.5 & Literature Survey 5 & 6 \\
 \hline
-5.1 & GAR scoring components & 12 \\
+5.1 & Retrieval baseline comparison & 15 \\
 \hline
-5.2 & GAR hyperparameters & 14 \\
-\hline
-5.3 & Retrieval baseline comparison & 14 \\
+5.2 & GAR hyperparameters & 15 \\
 \hline
 6.1 & Software requirements & 17 \\
 \hline
-6.2 & Hardware requirements & 18 \\
-\hline
-8.1 & Project activity plan & 20 \\
+6.2 & Modules Description & 18 \\
 \hline
 \end{tabular}%
 }
@@ -1440,31 +1437,33 @@ LaTeX & Overleaf & Preparation of the research document. \\ \hline
 
 The primary embedding model is \texttt{multi-qa-mpnet-base-cos-v1} from Sentence Transformers. It is used to generate a common semantic representation for questions, information gaps, documents, and collected evidence. The model remains fixed and is not fine-tuned during the primary experiments.
 \clearpage
-\subsection*{6.2 Hardware Requirements}
+\subsection*{6.2 Modules Description}
 
-The main hardware requirements are shown in Table~\ref{tab:hardware-requirements}.
+The proposed GAR methodology is divided into three major modules: 
+the Retrieval Module, the Scoring Module, and the Selection Module. 
+The responsibilities of each module are described in Table~\ref{tab:module-description}.
 
 \begin{table}[H]
 \centering
-\caption{Hardware requirements}
-\label{tab:hardware-requirements}
-\renewcommand{\arraystretch}{1.2}
+\caption{Modules Description}
+\label{tab:module-description}
+\renewcommand{\arraystretch}{1.25}
 \begin{tabular}{|p{1.65in}|p{4.4in}|}
 \hline
-\textbf{Hardware} & \textbf{Purpose} \\ \hline
+\textbf{Module} & \textbf{Responsibility} \\ \hline
 
-CPU & Required for data preprocessing, experiment execution, GAR scoring, and evaluation. \\ \hline
+Retrieval Module &
+Generates embeddings for the question, current information gap, and document corpus using the Sentence Transformer model. It then performs Approximate Nearest Neighbor (ANN) search to generate the candidate document set $C_t$. \\ \hline
 
-RAM & Required for loading datasets, processing documents, and handling embedding and experiment data. \\ \hline
+Scoring Module &
+Evaluates the candidate documents using three signals: relevance, gap coverage, and evidence novelty. These scores are combined using the GAR scoring function $S(d \mid q,E_t,G_t) = \alpha R + \beta C + \gamma N$. \\ \hline
 
-GPU & Recommended for faster embedding generation and execution of neural retrieval models. \\ \hline
-
-Storage & Required for datasets, document files, model files, and experiment results. \\ \hline
-
-Internet Connection & Required for downloading datasets and pretrained models and for accessing Pinecone. \\ \hline
+Selection Module &
+Ranks the candidate documents according to their GAR scores and selects the Top-$k$ documents. The selected documents are passed to MIGRES for filtering and extraction, after which the updated evidence $E_{t+1}$ and information gap $G_{t+1}$ are used for the next retrieval iteration. \\ \hline
 
 \end{tabular}
 \end{table}
+
 \clearpage
 % ============================================================
 % CHAPTER 7
