@@ -1,5 +1,5 @@
 % ============================================================
-% SYNOPSIS
+% METHODOLOGY
 % GAP-AWARE RETRIEVAL FOR ITERATIVE RETRIEVAL-AUGMENTED
 % GENERATION
 %
@@ -375,37 +375,37 @@ INTRODUCTION &
 
 2. &
 LITERATURE SURVEY &
-2--4 \\
+2--6 \\
 
 \hline
 
 3. &
 PROBLEM DEFINITION &
-5 \\
+7 \\
 
 \hline
 
 4. &
 OBJECTIVES &
-6 \\
+8 \\
 
 \hline
 
 5. &
 APPLICATIONS &
-7 \\
+9 \\
 
 \hline
 
 6. &
 PLANNING &
-8 \\
+10 \\
 
 \hline
 
 7. &
 REFERENCES &
-9 \\
+11 \\
 
 \hline
 
@@ -554,7 +554,7 @@ The study of MIGRES and related retrieval approaches has motivated further inves
 \\ \hline
 
 \textbf{Authors} &
-K. Wang, F. Duan, P. Li, S. Wang, and X. Cai
+Keheng Wang, Feiyu Duan, Peiguang Li, Sirui Wang, and Xunliang Cai
 \\ \hline
 
 \textbf{Publication Details} &
@@ -568,11 +568,11 @@ Proceedings of the 31st International Conference on Computational Linguistics (C
     topsep=0pt,
     parsep=0pt
 ]
-    \item MIGRES is introduced as a framework for iterative Retrieval-Augmented Generation.
-    
-    \item Missing information is identified after each retrieval step and is used to guide the next retrieval.
-    
-    \item The framework shows the importance of identifying what information is still required during iterative retrieval.
+    \item The ability of LLMs to extract useful information from retrieved documents and identify information that is still missing is experimentally demonstrated.
+
+    \item MIGRES is introduced as a Missing Information Guided Retrieve-Extraction-Solving framework, where the identified missing information is used to generate a targeted query for subsequent retrieval.
+
+    \item Sentence-level reranking and filtering are introduced to remove irrelevant content from retrieved documents before useful information is extracted.
 \end{itemize}
 \\ \hline
 
@@ -583,7 +583,9 @@ Proceedings of the 31st International Conference on Computational Linguistics (C
     topsep=0pt,
     parsep=0pt
 ]
-    \item The retrieval process is guided by missing information, but further investigation can be made into how the retrieved evidence itself can be considered during document selection.
+    \item Although MIGRES improves iterative retrieval, its performance still depends on the quality of the generated queries and the knowledge returned by the retriever.
+
+    \item The framework can still encounter hard-negative passages that receive high relevance scores but do not provide useful information, which makes effective evidence selection challenging.
 \end{itemize}
 \\ \hline
 
@@ -594,9 +596,7 @@ Proceedings of the 31st International Conference on Computational Linguistics (C
     topsep=0pt,
     parsep=0pt
 ]
-    \item MIGRES is the main starting point for our project.
-    
-    \item The study of MIGRES motivated the investigation of improving the retrieval stage of an iterative RAG system.
+    \item MIGRES provides the base iterative RAG framework for investigating whether the retrieval stage can be further improved using the information available at each retrieval step.
 \end{itemize}
 \\ \hline
 
@@ -622,7 +622,7 @@ Proceedings of the 31st International Conference on Computational Linguistics (C
 \\ \hline
 
 \textbf{Authors} &
-M. Pickett, J. Hartman, A. K. Bhowmick, R. Alam, and A. Vempaty
+Marc Pickett, Jeremy Hartman, Ayan Kumar Bhowmick, Raquib-ul Alam, and Aditya Vempaty
 \\ \hline
 
 \textbf{Publication Details} &
@@ -636,11 +636,13 @@ arXiv preprint, 2024.
     topsep=0pt,
     parsep=0pt
 ]
-    \item The use of information gain is investigated as an additional factor for improving RAG retrieval.
-    
-    \item Retrieved information is considered not only for its relevance, but also for the useful new information it can provide.
-    
-    \item The approach aims to reduce unnecessary repetition in retrieved information.
+    \item The limited context window of RAG systems can cause redundant passages to occupy space that could otherwise be used for useful information.
+
+    \item A Relevant Information Gain metric is introduced to measure the total information relevant to a query provided by a set of retrieved passages.
+
+    \item The Dartboard retrieval method is developed using the proposed metric, allowing diverse passages to be selected without explicitly adding a separate diversity term.
+
+    \item The method is evaluated on the Retrieval Augmented Generation Benchmark (RGB) and is reported to outperform existing retrieval approaches based on relevance and diversity.
 \end{itemize}
 \\ \hline
 
@@ -651,7 +653,9 @@ arXiv preprint, 2024.
     topsep=0pt,
     parsep=0pt
 ]
-    \item The usefulness of new information is considered, but the information requirement can change after each step in an iterative retrieval process.
+    \item The proposed retrieval objective is defined for selecting a set of passages for a query, while the study does not specifically address how the retrieval objective should change when new evidence is collected through multiple retrieval steps.
+
+    \item The evaluation is mainly conducted using the RGB benchmark, leaving the effectiveness of the approach in other iterative or multi-step retrieval settings open for further investigation.
 \end{itemize}
 \\ \hline
 
@@ -662,13 +666,14 @@ arXiv preprint, 2024.
     topsep=0pt,
     parsep=0pt
 ]
-    \item The paper provides motivation for reducing repeated information during retrieval.
-    
-    \item The idea of considering useful new information is relevant to our investigation of iterative retrieval.
+    \item The paper provides a basis for considering the usefulness and redundancy of retrieved information when selecting documents, which is relevant to the retrieval problem being investigated in this project.
 \end{itemize}
 \\ \hline
 
 \end{longtable}
+
+\clearpage
+
 
 % ============================================================
 % PAPER 3
@@ -687,7 +692,7 @@ arXiv preprint, 2024.
 \\ \hline
 
 \textbf{Authors} &
-Z. Wang et al.
+Zihan Wang, Zihan Liang, Zhou Shao, Yufei Ma, Huangyu Dai, Ben Chen, Lingtao Mao, Chenyi Lei, Yuqing Ding, and Han Li
 \\ \hline
 
 \textbf{Publication Details} &
@@ -701,11 +706,13 @@ Proceedings of the 2025 Conference on Empirical Methods in Natural Language Proc
     topsep=0pt,
     parsep=0pt
 ]
-    \item Document information gain is studied as a way to improve RAG retrieval.
-    
-    \item Reranking and filtering are used to give greater importance to documents that provide useful information.
-    
-    \item The work emphasizes that document usefulness should not be based only on relevance.
+    \item Document Information Gain (DIG) is introduced to measure the contribution of an individual retrieved document to correct answer generation.
+
+    \item DIG is calculated from the change in the LLM's generation confidence when a document is added to the context.
+
+    \item InfoGain-RAG uses DIG scores to train a multi-task reranker that performs document filtering and ranking.
+
+    \item Experiments across different RAG models and benchmarks show that the proposed method improves answer generation compared with several existing retrieval and reranking approaches.
 \end{itemize}
 \\ \hline
 
@@ -716,9 +723,11 @@ Proceedings of the 2025 Conference on Empirical Methods in Natural Language Proc
     topsep=0pt,
     parsep=0pt
 ]
-    \item The focus is placed on information contribution during document selection.
-    
-    \item Further investigation can be made into using information contribution together with the changing information requirement in iterative retrieval.
+    \item The current implementation is evaluated only on text-based retrieval tasks, while its application to other modalities such as visual or code information is left for future work.
+
+    \item The DIG metric measures the contribution of a document to answer generation but cannot determine whether the information within that document is factually correct.
+
+    \item The reranker size is limited by computational constraints, which may restrict the performance that could be obtained from larger models.
 \end{itemize}
 \\ \hline
 
@@ -729,9 +738,7 @@ Proceedings of the 2025 Conference on Empirical Methods in Natural Language Proc
     topsep=0pt,
     parsep=0pt
 ]
-    \item The paper supports the consideration of information contribution during document retrieval.
-    
-    \item This provides motivation for investigating whether useful new evidence can be selected based on the current information requirement.
+    \item The paper provides a useful basis for considering the contribution of retrieved documents when designing an improved document selection strategy.
 \end{itemize}
 \\ \hline
 
@@ -757,7 +764,7 @@ Proceedings of the 2025 Conference on Empirical Methods in Natural Language Proc
 \\ \hline
 
 \textbf{Authors} &
-J. Hwang, J. Park, H. Park, D. Kim, S. Park, and J. Ok
+Jeongyeon Hwang, Junyoung Park, Hyejin Park, Dongwoo Kim, Sangdon Park, and Jungseul Ok
 \\ \hline
 
 \textbf{Publication Details} &
@@ -771,11 +778,13 @@ Proceedings of the 2025 Conference on Empirical Methods in Natural Language Proc
     topsep=0pt,
     parsep=0pt
 ]
-    \item The reliability of information sources used in RAG is investigated.
-    
-    \item Source reliability is considered as an additional factor when selecting information for RAG.
-    
-    \item The study shows that the quality of retrieved sources can affect the final generated answer.
+    \item The effect of heterogeneous source reliability in multi-source RAG is investigated. It is shown that relying only on query-document relevance can allow information from unreliable sources to influence the generated answer.
+
+    \item Reliability-Aware RAG (RA-RAG) is introduced, where source reliability is estimated by cross-checking information across multiple sources.
+
+    \item Documents are selectively retrieved from highly reliable and relevant sources, and their information is aggregated using Weighted Majority Voting (WMV).
+
+    \item Experiments show that RA-RAG improves performance over the compared baselines and remains effective as the number of information sources increases.
 \end{itemize}
 \\ \hline
 
@@ -786,7 +795,11 @@ Proceedings of the 2025 Conference on Empirical Methods in Natural Language Proc
     topsep=0pt,
     parsep=0pt
 ]
-    \item Source reliability provides information about the quality of a source, but it does not directly indicate whether the source contains the information currently required by an iterative retrieval process.
+    \item Reliability estimation becomes more difficult when only a limited number of sources are available for cross-verification.
+
+    \item The evaluation of real-world source reliability is mainly focused on news-related claims, while specialized topics with fewer available reference sources remain challenging.
+
+    \item The reliability estimation process is performed in an offline setting and therefore requires periodic updates when the reliability of a source changes over time.
 \end{itemize}
 \\ \hline
 
@@ -797,13 +810,13 @@ Proceedings of the 2025 Conference on Empirical Methods in Natural Language Proc
     topsep=0pt,
     parsep=0pt
 ]
-    \item The paper shows that factors other than query relevance can be considered during RAG retrieval.
-    
-    \item This supports the investigation of multiple factors for improving evidence selection.
+    \item The paper demonstrates that factors beyond query-document relevance can be incorporated into document selection, supporting the investigation of additional evidence-aware retrieval factors.
 \end{itemize}
 \\ \hline
 
 \end{longtable}
+
+\clearpage
 
 % ============================================================
 % PAPER 5
@@ -822,11 +835,11 @@ Proceedings of the 2025 Conference on Empirical Methods in Natural Language Proc
 \\ \hline
 
 \textbf{Authors} &
-T. Santhanam et al.
+Keshav Santhanam, Omar Khattab, Jon Saad-Falcon, Christopher Potts, and Matei Zaharia
 \\ \hline
 
 \textbf{Publication Details} &
-Proceedings of NAACL, 2022.
+Proceedings of the 2022 Conference of the North American Chapter of the Association for Computational Linguistics (NAACL), 2022, pp. 3715--3734.
 \\ \hline
 
 \textbf{Research Findings} &
@@ -836,9 +849,13 @@ Proceedings of NAACL, 2022.
     topsep=0pt,
     parsep=0pt
 ]
-    \item ColBERTv2 introduces an efficient late-interaction approach for document retrieval.
-    
-    \item Query and document representations are compared at the token level to improve document matching.
+    \item ColBERTv2 uses a late-interaction architecture in which query and document representations are independently encoded and compared at the token level.
+
+    \item A residual compression mechanism is introduced to reduce the storage requirements of token-level document representations.
+
+    \item Denoised supervision is used to improve the training of the retriever by reducing the effect of false negatives in the training data.
+
+    \item ColBERTv2 achieves strong retrieval effectiveness while requiring substantially less storage than the original ColBERT model.
 \end{itemize}
 \\ \hline
 
@@ -849,9 +866,9 @@ Proceedings of NAACL, 2022.
     topsep=0pt,
     parsep=0pt
 ]
-    \item The retrieval approach focuses on matching queries with documents.
-    
-    \item The information already collected and the information still missing during iterative retrieval are not the main focus of the method.
+    \item The method still requires storing token-level representations for documents, which can result in considerable storage requirements for large collections.
+
+    \item The retrieval architecture is designed primarily for efficient query-document matching, while the study does not investigate iterative retrieval with changing information requirements.
 \end{itemize}
 \\ \hline
 
@@ -862,9 +879,7 @@ Proceedings of NAACL, 2022.
     topsep=0pt,
     parsep=0pt
 ]
-    \item ColBERTv2 provides an established retrieval method that can be used for comparison.
-    
-    \item It also provides a different retrieval approach from the information-gap-based direction being investigated in this project.
+    \item ColBERTv2 provides an established neural retrieval method that can be considered as a retrieval baseline for evaluating an alternative retrieval strategy.
 \end{itemize}
 \\ \hline
 
