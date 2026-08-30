@@ -1353,19 +1353,19 @@ The different settings are compared based on retrieval performance and latency. 
 
 \subsubsection{Retrieval Evaluation}
 
-The retrieval performance is evaluated using Recall@k, Precision@k, Mean Reciprocal Rank (MRR), and nDCG@k. Recall@k measures how much of the relevant evidence is retrieved in the first $k$ documents. Precision@k measures how many of the retrieved documents are relevant. MRR measures how early the first relevant document appears, while nDCG@k measures the quality of the document ranking when graded relevance is available \cite{jarvelin2002cumulated}. Evidence coverage is also reported where the dataset provides suitable annotations.
+We evaluate retrieval using Recall@k, Precision@k, MRR, and nDCG@k. Recall@k measures how much relevant evidence is retrieved, while Precision@k measures how many retrieved documents are relevant. MRR measures how early the first relevant document appears, and nDCG@k evaluates the quality of the ranking. Evidence coverage is also reported where suitable annotations are available.
 
 \subsubsection{Downstream Answer Evaluation}
 
-The final answers are evaluated using the official metrics provided by each dataset. These include Exact Match (EM), token-level F1, classification accuracy, and supporting-evidence quality where applicable. Official evaluation scripts are used whenever available.
+Final answer quality is measured using the official dataset metrics, including Exact Match (EM), token-level F1, classification accuracy, and supporting-evidence quality where applicable.
 
 \subsubsection{Efficiency Evaluation}
 
-The efficiency of the retrieval methods is evaluated using retrieval latency, ANN indexing time, index memory, number of retrieval iterations, and number of documents scored by GAR. The complete system also records the number of LLM calls, input and output tokens, and API cost where applicable.
+Efficiency is evaluated using retrieval latency, ANN indexing time, index memory, number of retrieval iterations, and number of documents scored. LLM calls, token usage, and API cost are also recorded where applicable.
 
 \subsubsection{Statistical Analysis}
 
-The results are reported with effect sizes and confidence intervals. Statistical significance is tested using a paired statistical procedure, such as paired bootstrap or paired permutation testing, for per-question metrics. The statistical procedure is selected before the final test results are examined.
+We report effect sizes and confidence intervals. Since all methods are evaluated on the same questions, paired bootstrap or paired permutation testing is used to determine whether performance differences are statistically significant.
 
 \section{Experimental Environment and Reproducibility}
 
