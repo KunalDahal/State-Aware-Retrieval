@@ -211,13 +211,13 @@
 \vspace*{0.58in}
 
 {\fontsize{16}{19}\selectfont\bfseries
-Gap-Aware Retrieval:\par}
+Gap-Aware Retrieval (GAR):\par}
 
 \vspace{0.08in}
 
 {\fontsize{16}{19}\selectfont\bfseries
-An Adaptive Retrieval Algorithm for\par
-Iterative Retrieval-Augmented Generation\par}
+Adaptive Retrieval Using Information Gaps\par
+and Existing Evidence\par}
 
 \vspace{0.42in}
 
@@ -324,11 +324,11 @@ Sikkim Institute of Science and Technology\par}
 
 \justifying
 
-Retrieval-Augmented Generation (RAG) systems retrieve external information to support the generation of answers by large language models(LLMs). However, in complex and multi-hop questions, conventional retrieval methods may repeatedly retrieve information that is already available instead of focusing on the information that is still missing. This can limit the effectiveness of iterative retrieval.
+Retrieval-Augmented Generation (RAG) systems retrieve external information to support the generation of answers by large language models (LLMs). However, in complex and multi-hop questions, conventional retrieval methods may repeatedly retrieve information that is already available instead of focusing on the information that is still missing. This can limit the effectiveness of iterative retrieval.
 
-This project is motivated by the MIGRES framework, which guides iterative retrieval using missing information. Based on the study of MIGRES and related retrieval approaches, this work proposes \textbf{Gap-Aware Retrieval (GAR)}, a retrieval algorithm designed to select documents according to the current information gap and previously collected evidence. GAR considers three factors: gap relevance, gap coverage, and evidence novelty.
+This project is motivated by the MIGRES framework, which guides iterative retrieval using missing information. Based on the study of MIGRES and related retrieval approaches, this work will investigate the possibility of using the current information gap and previously collected evidence to guide document retrieval. The study will explore whether factors such as gap relevance, gap coverage, and evidence novelty can be considered to improve the selection of useful documents during iterative retrieval.
 
-The proposed work aims to investigate whether explicitly incorporating the current information gap and previously collected evidence into the retrieval process can lead to more useful evidence selection in iterative RAG. The proposed GAR algorithm will be implemented within the MIGRES framework and evaluated against established retrieval approaches.
+The proposed study will investigate whether explicitly incorporating the current information gap and previously collected evidence into the retrieval process can lead to more useful evidence selection in iterative RAG. As part of the work, a suitable retrieval strategy will be studied and developed within the MIGRES framework and will subsequently be evaluated against established retrieval approaches.
 
 \vspace{0.10in}
 
@@ -398,7 +398,7 @@ APPLICATIONS &
 \hline
 
 6. &
-PLANNING &
+GANTT CHART &
 10 \\
 
 \hline
@@ -513,15 +513,15 @@ REFERENCES &
 
 Retrieval-Augmented Generation (RAG) combines information retrieval with large language models (LLMs) to improve answer generation using information from external documents. Instead of relying only on the knowledge stored in the model, RAG retrieves relevant information and provides it as context to the LLM. The quality of the retrieved information therefore has an important effect on the final answer.
 
-Traditional retrieval methods mainly select documents based on their relevance to the given query. This can become challenging for complex and multi-hop questions, where the answer may require information from multiple documents. After one retrieval step, some information may already be available while other information is still missing. In such cases, retrieving documents based only on the original query may result in repeated or less useful information.
+Traditional retrieval methods mainly select documents based on their relevance to the given query. This can become challenging for complex and multi-hop questions, where the answer may require information from multiple documents. After one retrieval step, some information may already be available while other information may still be missing. In such cases, retrieving documents based only on the original query may result in repeated or less useful information.
 
 The MIGRES framework addresses this issue by using missing information to guide iterative retrieval. After recovering and processing the evidence, MIGRES identifies what information is still missing and uses it to guide the next retrieval step \cite{wang2025migres}. This provides a useful direction for improving retrieval in multi-step question answering.
 
 Recent research has also explored other ways to improve the usefulness of the retrieved information. Relevant Information Gain considers whether retrieved information provides useful new content rather than unnecessary repetition \cite{pickett2024better}. InfoGain-RAG similarly investigates document information gain for reranking and filtering retrieved documents \cite{wang2025infogain}. Other work has considered source reliability as an additional factor in RAG \cite{hwang2025reliability}, while ColBERTv2 provides an efficient late-interaction approach for document retrieval \cite{santhanam2022colbertv2}.
 
-From the study of MIGRES and these related approaches, this project identified a possible opportunity to improve iterative retrieval. The main observation is that the retrieval process could consider not only the original question but also what information is currently missing and what evidence has already been collected.
+Based on the study of MIGRES and these related retrieval approaches, this project will investigate how iterative retrieval can make better use of the information that has already been collected and the information that is still required. In particular, the study will examine whether considering the current information gap and previously collected evidence can help in selecting more useful documents during subsequent retrieval steps.
 
-The study of MIGRES and related retrieval approaches has motivated further investigation into how iterative retrieval can be improved. This project will explore the idea of \textbf{Gap-Aware Retrieval (GAR)}, focusing on whether the current information gap and previously collected evidence can help guide iterative retrieval. The concept will be further studied, refined, and developed during the subsequent stages of the project.
+As part of this investigation, the project will explore a retrieval strategy referred to as \textbf{Gap-Aware Retrieval (GAR)}. The study will examine the feasibility of considering factors such as gap relevance, gap coverage, and evidence novelty during document selection. The approach will be studied, developed, and evaluated during the subsequent stages of the project to determine its effectiveness in iterative RAG.
 
 \clearpage
 
@@ -993,9 +993,9 @@ The approach may be applicable to AI systems that repeatedly retrieve external i
 % PLANNING
 % ============================================================
 
-\addcontentsline{toc}{chapter}{6. PLANNING}
+\addcontentsline{toc}{chapter}{6. GANTT CHART}
 
-\chaptertitle{6}{PLANNING}
+\chaptertitle{6}{GANTT CHART}
 
 \begin{center}
 
