@@ -358,7 +358,7 @@ This project develops a methodology for investigating \textbf{Gap-Aware Retrieva
 
 The methodology uses a fixed sentence-embedding model, approximate nearest-neighbor (ANN) candidate generation, and a weighted GAR scoring function. The proposed retriever is evaluated against BM25, DPR, Contriever, ColBERTv2, and SPLADE under controlled experimental conditions, with the validation split used for selecting GAR scoring hyperparameters before the test evaluation.
 
-The evaluation considers retrieval effectiveness, downstream question-answering quality, ablation of the GAR components, computational efficiency, and reproducibility. The methodology is designed to determine whether explicitly modeling the information gap and previously collected evidence improves iterative retrieval without changing the surrounding MIGRES reasoning, extraction, and solving components.
+The evaluation considers retrieval effectiveness, downstream question-answering quality, ablation of the GAR components, iteration-wise behavior, failure cases, computational efficiency, and reproducibility. The methodology is designed to determine whether explicitly modeling the information gap and previously collected evidence improves iterative retrieval without changing the surrounding MIGRES reasoning, extraction, and solving components.
 
 \vspace{0.10in}
 
@@ -1269,6 +1269,30 @@ MIGRES+GAR & Gap-aware & Proposed retrieval method \\ \hline
 
 For a fair comparison, the same dataset splits, questions, document corpus, retrieval depth $k$, and other system settings are used for all methods wherever possible. Only the retrieval method is changed. The baseline methods are used with their standard implementations and settings.
 
+\subsection{Research Questions}
+
+The experimental design addresses the following research questions:
+
+\textbf{RQ1.} Does GAR improve retrieval quality over the MIGRES BM25 baseline?
+
+\textbf{RQ2.} Does GAR outperform strong dense, sparse, and late-interaction retrieval methods?
+
+\textbf{RQ3.} Does replacing BM25 with GAR improve downstream MIGRES answer quality?
+
+\textbf{RQ4.} Which GAR component contributes most: relevance, coverage, or novelty?
+
+\textbf{RQ5.} Does GAR generalize across the six datasets?
+
+\textbf{RQ6.} What is the computational cost of GAR compared with the baselines?
+
+\textbf{RQ7.} Does GAR improve retrieval without adding unnecessary LLM calls?
+
+\textbf{RQ8.} How does GAR's retrieval effectiveness and evidence selection behavior change across successive MIGRES retrieval iterations?
+
+\textbf{RQ9.} What are the main failure modes of GAR, and at which stage of the retrieval pipeline do these failures occur?
+
+RQ8 is addressed through iteration-wise retrieval analysis, while RQ9 is addressed through failure-case and candidate-pool analysis. The additional analyses do not modify the GAR scoring function or introduce new trainable components.
+
 \section{Experimental Design}
 
 The experiments are conducted in four main stages. First, the GAR hyperparameters are selected using the validation set. The selected configuration is then fixed and used for the main comparison with existing retrieval methods. Ablation experiments are then performed to study the contribution of the individual GAR components. Finally, the effect of the ANN candidate-pool size is analyzed.
@@ -1339,6 +1363,8 @@ S_{-N}=\alpha R+\beta C.
 
 The results of these variants are compared with the complete GAR model to determine the contribution of each component.
 
+Two additional diagnostic variants are also considered. The first, $GAR_{\mathrm{Q-only}}$, uses only relevance to the original question. The second, $GAR_{\mathrm{Q+G}}$, uses question and gap relevance but excludes novelty. These variants help distinguish the benefit of explicitly using the information gap from the benefit of the complete relevance--coverage--novelty formulation.
+
 \subsection{Candidate-Pool Analysis}
 
 The effect of the ANN candidate-pool size $K_0$ is also evaluated. The following values are considered:
@@ -1348,6 +1374,41 @@ K_0\in\{50,100,200,500\}.
 \]
 
 The different settings are compared based on retrieval performance and latency. The validation results are used to select the final $K_0$, which is then fixed for the test evaluation.
+
+The analysis also records whether ground-truth relevant evidence is present in the ANN candidate set. This distinguishes a candidate-generation failure, where a useful document never reaches GAR scoring, from a ranking failure, where the useful document is present but receives a low GAR score.
+
+\subsection{Iteration-Wise Analysis}
+
+Because GAR is designed for iterative retrieval, its behavior is analyzed separately across retrieval iterations. Retrieval quality is reported for the first retrieval step and for subsequent iterations where the MIGRES state contains previously collected evidence and a non-empty information gap.
+
+The analysis examines whether GAR's retrieval behavior changes as evidence accumulates. In particular, it investigates whether later iterations retrieve more complementary evidence and whether the relative usefulness of relevance, coverage, and novelty changes as the information state becomes more complete.
+
+This analysis is diagnostic and does not introduce an additional component or hyperparameter into GAR.
+
+\subsection{Failure-Case Analysis}
+
+A qualitative and quantitative error analysis is performed on questions for which GAR fails to retrieve required evidence or fails to improve the final answer. Failure cases are categorized according to the stage at which the problem occurs.
+
+The categories include:
+
+\begin{itemize}[leftmargin=1.5em]
+\item incorrect or incomplete information gaps produced by the surrounding MIGRES process;
+\item semantic mismatch between a valid document and the embedding-based retrieval representation;
+\item insufficient gap coverage despite high overall relevance;
+\item useful evidence being penalized by the novelty term because it is similar to previously collected evidence;
+\item relevant evidence being absent from the ANN candidate pool;
+\item multi-hop cases in which a document becomes useful only after another piece of evidence has been collected.
+\end{itemize}
+
+The purpose of this analysis is to identify the conditions under which GAR succeeds or fails without changing the proposed retrieval formulation.
+
+\subsection{Gap-Coverage Diagnostic}
+
+The primary GAR coverage measure uses normalized lexical token overlap. This is retained as the main implementation because it is simple, interpretable, and locally computable.
+
+A diagnostic analysis is performed to examine whether lexical overlap is a reasonable approximation of semantic coverage. Examples are inspected where a document appears to satisfy a missing information requirement despite having low token overlap, and where high token overlap does not correspond to useful evidence.
+
+This analysis is used to identify limitations of the current coverage formulation rather than to introduce a new coverage model into the primary experiment.
 
 \subsection{Evaluation Metrics}
 
@@ -1393,7 +1454,7 @@ This chapter presented the proposed Gap-Aware Retrieval (GAR) approach for itera
 
 The chapter described the GAR architecture, retrieval process, mathematical formulation, and experimental design. GAR will evaluated against established retrieval methods using controlled experiments, with hyperparameters selected on the validation set before final test evaluation. Ablation and efficiency analyses are also included to examine the contribution and practical performance of the proposed approach.
 
-Overall, the methodology provides a complete framework for implementing and evaluating GAR for iterative information retrieval.
+Overall, the methodology provides a complete framework for implementing and evaluating GAR for iterative information retrieval. The added iteration-wise and failure-case analyses deepen the evaluation without changing the core GAR formulation.
 
 \clearpage
 
