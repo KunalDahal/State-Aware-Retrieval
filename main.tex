@@ -195,7 +195,7 @@ where:
 This state is used in two stages. First, a first-stage retriever performs retrieval from $\mathcal{D}$ using $q$ and each requirement in $G_t$, producing a candidate set $\mathcal{C}_t$. Second, GAR reranks $\mathcal{C}_t$ using $q$, $E_t$, and $G_t$:
 
 \[
-T_t=\operatorname{TopK}_{d\in\mathcal{C}_t}S(d\mid q,E_t,G_t).
+T_t=\operatorname{Top}_{k}\!\left\{d\in\mathcal{C}_t:\;S(d\mid q,E_t,G_t)\right\}.
 \]
 
 MIGRES then continues its normal filtering, extraction, gap-analysis, and solving process.
@@ -967,12 +967,13 @@ Their roles are:
 $\alpha$ & Weight of relevance $R$ & $\geq0$\\
 $\beta$ & Weight of coverage $C$ & $\geq0$\\
 $\gamma$ & Weight of novelty $N$ & $\geq0$\\
-$K_0$ & First-stage retrieval depth per query (question or gap requirement); candidate pool $|\mathcal{C}_t|\le(m+1)K_0$ & $K_0\geq k$ (sufficient, but not necessary, for $|\mathcal{C}_t|\ge k$ when each retrieval returns $K_0$ documents; $\min(k,|\mathcal{C}_t|)$ documents are returned)\\
+$K_0$ & First-stage retrieval depth per query (question or gap requirement); candidate pool $|\mathcal{C}_t|\le(m+1)K_0$ & $K_0>0$\\
+$k$ & User-configurable final retrieval depth returned to MIGRES; fixed across systems within a comparison & $k\in\mathbb{Z}_{\geq1}$\\
 \bottomrule
 \end{tabularx}
 \end{center}
 
-The final retrieval depth $k$ is an \textbf{experimental setting}, not a GAR-specific scoring parameter. It should be kept the same across systems for fair comparison.
+The final retrieval depth $k$ is an \textbf{user-configurable experimental parameter}, not a GAR-specific scoring parameter. The implementation accepts $k$ from the experiment configuration (for example, a command-line argument or configuration file); no particular default value is required by the method. Once supplied, $k$ must be a positive integer and is kept identical across all systems and rerankers within a comparison.
 
 Two depths must not be confused. $K_0^{\mathrm{sel}}$ is a fixed, pre-specified per-query depth used only to select $\mathrm{FSR}$ in E1 (Section~\ref{sec:e1}). $K_0$ is the per-query depth that Bayesian optimization tunes for GAR (Section~6.13.4), and it is tuned only after $\mathrm{FSR}$ has been selected and frozen, so the selection of $\mathrm{FSR}$ does not depend on the value optimization chooses. Neither depth implies a post-union truncation: $\mathcal{C}_t$ is the complete deduplicated union of Eq.~(9), so its size varies with $m$ and with the overlap between the $m+1$ lists, and the mean and maximum $|\mathcal{C}_t|$ are reported for every dataset.
 
@@ -1090,7 +1091,7 @@ GAR does not independently invent $G_t$ in the main experiment. It receives the 
 
 \subsection{Step 3: First-Stage Retrieval}
 
-The selected first-stage retriever (Section~2) operates directly on the raw text of $\mathcal{D}$; for the sparse lexical candidates considered here (e.g.\ BM25), it requires no embeddings. For each query-like input $x$, it returns the $K_0$ highest-scoring documents:
+The selected first-stage retriever (Section~2) searches the corpus $\mathcal{D}$ using its own retrieval representation and index; for a sparse lexical retriever such as BM25 this is a lexical index, while dense or late-interaction retrievers use their corresponding pre-built corpus representations. For each query-like input $x$, it returns the $K_0$ highest-scoring documents:
 
 \[
 \mathrm{FSR}_{K_0}(x,\mathcal{D}).
@@ -1114,7 +1115,7 @@ Duplicates are removed. Because each of the $m+1$ retrieval calls can return up 
 
 Taking the union in Eq.~(9) yields a set in which a document can appear in more than one of the $m+1$ retrieved lists with different first-stage scores under $q$ or a given $g_i$. These individual FSR scores are retained alongside $\mathcal{C}_t$ for the baselines that need them (LambdaMART's first-stage-score feature, whose value is the fused score defined below, and the fused ordering used by AIR and RankGPT), but they are not used in GAR's own score. GAR itself does not need these first-stage scores, as it rescoring every $d\in\mathcal{C}_t$ from scratch using $R$, $C$, and $N$. However, the no-reranking control (the selected first-stage retriever with no reranker) does need a defined top-$k$ over $\mathcal{C}_t$: for that system, we fuse a document's score as the maximum first-stage score it received across the retrieval calls that returned it, i.e.\ $\max\big(\mathrm{FSR}(d,q),\max_i \mathrm{FSR}(d,g_i)\big)$, and rank $\mathcal{C}_t$ by this fused score.
 
-This step is cheap relative to embedding the full corpus even when $\mathcal{D}$ contains millions of documents, and it avoids requiring GAR to build or query a dense index over the full corpus.
+GAR itself does not build or query a corpus-wide dense embedding index; any indexing cost required by the selected FSR is part of FSR and is measured separately in E5.
 
 \subsection{Step 4: Convert Candidate Text to Embeddings}
 
@@ -1187,8 +1188,7 @@ GAR returns:
 \[
 \boxed{
 T_t=
-\operatorname{TopK}_{d\in\mathcal C_t}
-S(d\mid q,E_t,G_t)
+\operatorname{Top}_{k}\!\left\{d\in\mathcal C_t:\;S(d\mid q,E_t,G_t)\right\}
 }
 \tag{10}
 \]
@@ -1612,7 +1612,7 @@ These purposes correspond to two different kinds of experiment, which are never 
 \toprule
  & \textbf{First-stage retrieval (E1)} & \textbf{Reranking (E2--E5)}\\
 \midrule
-Input & The question $q$ alone; the full corpus $\mathcal{D}$. & The fixed candidate set $\mathcal{C}_t$ built by the frozen $\mathrm{FSR}$ (Eq.~(9)), together with $q$, $E_t$, $G_t$.\\
+Input & The question $q$ and the stored gap requirements $G_t=\{g_1,\ldots,g_m\}$ from the reference trajectory; the full corpus $\mathcal{D}$. & The fixed candidate set $\mathcal{C}_t$ built by the frozen $\mathrm{FSR}$ (Eq.~(9)), together with $q$, $E_t$, $G_t$.\\
 Output & A ranked list over $\mathcal{D}$ of depth $K_0$. & A reordering of $\mathcal{C}_t$; no document outside $\mathcal{C}_t$ can be returned.\\
 Systems & BM25, DPR, Contriever, ColBERTv2, SPLADE. & $\mathrm{FSR}$ (no reranking), ten rerankers, GAR.\\
 GAR present? & No. & Yes.\\
@@ -1782,10 +1782,22 @@ T_{\mathrm{in}}(\ell)p_{\mathrm{in}}(\ell)
 T_{\mathrm{out}}(\ell)p_{\mathrm{out}}(\ell)
 \Big),
 \qquad
-\overline{Cost}=\frac{1}{N}\sum_{i=1}^{N}Cost(q_i),
+\overline{Cost}=\frac{1}{N}\sum_{i=1}^{N}Cost(q_i).
 }
 \]
-where $\mathcal{L}(q)$ is the set of LLM calls made while answering question $q$, $T_{\mathrm{in}}(\ell),T_{\mathrm{out}}(\ell)$ are the input/output tokens of call $\ell$, and $p_{\mathrm{in}}(\ell),p_{\mathrm{out}}(\ell)$ are the per-token prices of whichever model served that call. Because calls need not share a model or a price, the cost is summed per call; it reduces to $T_{\mathrm{in}}p_{\mathrm{in}}+T_{\mathrm{out}}p_{\mathrm{out}}$ only when $|\mathcal{L}(q)|=1$.
+For token accounting we additionally record
+\[
+\boxed{
+T_{\mathrm{in}}^{\mathrm{tot}}(q)=\sum_{\ell\in\mathcal{L}(q)}T_{\mathrm{in}}(\ell),
+\qquad
+T_{\mathrm{out}}^{\mathrm{tot}}(q)=\sum_{\ell\in\mathcal{L}(q)}T_{\mathrm{out}}(\ell),
+\qquad
+T_{\mathrm{tot}}(q)=T_{\mathrm{in}}^{\mathrm{tot}}(q)+T_{\mathrm{out}}^{\mathrm{tot}}(q).
+}
+\]
+We report, for every system, the total input tokens, total output tokens, total tokens, number of API calls, and API cost over $D_{\mathrm{test}}$, together with their per-question means. The raw token counts are taken from the API usage metadata when an external API is used; no token count is inferred from character length. Local model inference is counted separately as local computation and has zero API cost unless an external service is actually charged for it.
+
+Here $\mathcal{L}(q)$ is the set of LLM calls made while answering question $q$, $T_{\mathrm{in}}(\ell),T_{\mathrm{out}}(\ell)$ are the input/output tokens of call $\ell$, and $p_{\mathrm{in}}(\ell),p_{\mathrm{out}}(\ell)$ are the per-token prices of whichever model served that call. Because calls need not share a model or a price, the cost is summed per call; it reduces to $T_{\mathrm{in}}p_{\mathrm{in}}+T_{\mathrm{out}}p_{\mathrm{out}}$ only when $|\mathcal{L}(q)|=1$.
 
 \textbf{Counting rules.} Pointwise rerankers (MonoBERT, MonoT5, RankT5) require one forward pass per candidate; DuoBERT requires $|\mathcal{C}_t|(|\mathcal{C}_t|-1)$ model calls (Section~3). GAR embeds the question, the evidence items in $E_t$, and only the documents in $\mathcal{C}_t$ with the fixed Sentence Transformer; these are local encoder passes, and gap coverage and novelty are computed locally by token overlap and cosine similarity. \textbf{GAR itself does not require one LLM call per candidate}; in the proposed implementation its scorer makes no LLM call. GAR also has no training stage and no corpus-wide embedding index (Sections~5.2 and~6.13.1). All counts are measured by instrumentation of the running systems rather than assumed.
 
@@ -2091,7 +2103,7 @@ $D_{\mathrm{val}}$ / $D_{\mathrm{test}}$ construction & Official splits, or seed
 Text preprocessing for $\tau(\cdot)$ & NFKC, lowercase, \texttt{\textbackslash w+} tokens, NLTK stopwords, Porter stemming\\
 Embedding input length & 512 word pieces, tail truncation; truncation rate reported\\
 GAR embedding model & \texttt{multi-qa-mpnet-base-cos-v1}\\
-Final retrieval depth $k$ & Fixed value for all systems\\
+Final retrieval depth $k$ & User-configured positive integer; fixed across all systems in a comparison\\
 FSR retrieval depth $K_0$ (per query) & Validation-selected GAR value\\
 $\alpha$, $\beta$, $\gamma$ & Validation-selected values\\
 Bayesian optimization seed & Recorded value\\
@@ -2099,6 +2111,7 @@ Bootstrap seed and resamples & Recorded seed; $B=10{,}000$\\
 $\mathrm{FSR}$ implementation & Exact library/index\\
 Hardware & CPU/GPU configuration\\
 Software & Python and package versions\\
+API pricing configuration & Model-specific input/output prices, currency, and price-date snapshot used for E5\\
 MIGRES configuration & Exact prompts/model/settings\\
 Pre-registration record & Test list, $B^\star$, and metric-to-annotation mappings, fixed before $D_{\mathrm{test}}$\\
 \bottomrule
