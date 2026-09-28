@@ -56,7 +56,7 @@
 \begin{abstract}
 Retrieval systems commonly rank documents according to their relevance to the original query. This can be insufficient in iterative information-seeking tasks, where the system already has some evidence and needs to retrieve only the information that is still missing. This project proposes \textbf{Gap-Aware Retrieval (GAR)}, a reranking algorithm that reorders a first-stage candidate set using three signals: relevance to the question, coverage of the missing information, and novelty with respect to previously collected evidence.
 
-GAR is evaluated inside the existing MIGRES framework, which identifies missing information during iterative retrieval. MIGRES is the experimental framework; a first-stage retriever performs retrieval from the corpus, and GAR is the proposed reranking component applied on top of that retriever's candidates. Which first-stage retriever is used is itself selected empirically (Section~2) rather than fixed in advance; BM25 is one of the candidates compared for that role. The surrounding MIGRES components are kept fixed as far as the original implementation permits. GAR is compared against no reranking and against ten reranking baselines (AIR, Dartboard/RIG, and RankGPT are adapted to the common-candidate-set setting) --- cross-encoder reranking (MonoBERT), MonoT5, pairwise reranking (DuoBERT), ColBERTv2 late-interaction reranking, classical learning-to-rank (LambdaMART), neural learning-to-rank (RankT5), Maximal Marginal Relevance (MMR), coverage-driven reranking (AIR), relevant-information-gain reranking (Dartboard/RIG), and LLM-based listwise reranking (RankGPT) --- on the datasets used in the MIGRES evaluation: WikiHop, HotpotQA, MuSiQue, Natural Questions, TriviaQA, and StrategyQA.
+GAR is evaluated inside the existing MIGRES framework, which identifies missing information during iterative retrieval. MIGRES is the experimental framework; a first-stage retriever performs retrieval from the corpus, and GAR is the proposed reranking component applied on top of that retriever's candidates. Which first-stage retriever is used is itself selected empirically (Section~2) rather than fixed in advance; BM25 is one of the candidates compared for that role. The surrounding MIGRES components are kept fixed as far as the original implementation permits. GAR is compared against no reranking and against eleven reranking baselines (AIR, Dartboard/RIG, and RankGPT are adapted to the common-candidate-set setting) --- cross-encoder reranking (MonoBERT), MonoT5, gap-aware MonoT5 control (MonoT5-G), pairwise reranking (DuoBERT), ColBERTv2 late-interaction reranking, classical learning-to-rank (LambdaMART), neural learning-to-rank (RankT5), Maximal Marginal Relevance (MMR), coverage-driven reranking (AIR), relevant-information-gain reranking (Dartboard/RIG), and LLM-based listwise reranking (RankGPT) --- on the datasets used in the MIGRES evaluation: WikiHop, HotpotQA, MuSiQue, Natural Questions, TriviaQA, and StrategyQA.
 
 The study evaluates retrieval quality, downstream answer quality, ablations, efficiency, and statistical significance. GAR has no trainable parameters in the proposed implementation. Its scoring hyperparameters are selected on a held-out validation set using Bayesian optimization and then frozen before test evaluation. The formulation is motivated by prior work on missing-information-guided retrieval, iterative evidence coverage, relevant information gain, sentence embeddings, and efficient nearest-neighbor search \citep{wang-etal-2025-llms,yadav-etal-2020-unsupervised,pickett-etal-2024-rig,reimers-gurevych-2019-sentence,johnson-etal-2017-faiss}.
 \end{abstract}
@@ -416,7 +416,7 @@ MIGRES+SPLADE & Neural sparse & Candidate first-stage retriever\\
 \end{tabular}
 \end{center}
 
-All five are evaluated on $D_{\mathrm{val}}$ under the same retrieval-quality metrics (Section~\ref{sec:metrics}), and established implementations and published checkpoints are used where possible; their exact checkpoint, index, and retrieval parameters must be recorded. The winner of this comparison becomes $\mathrm{FSR}$, held fixed for the rest of the project. All baselines should use established implementations and published checkpoints where possible. GAR does not appear in this table: it is not a first-stage retriever, but a reranking algorithm applied on top of $\mathrm{FSR}$'s output. GAR's own comparison, against ten reranking baselines (three of them adapted; Section~\ref{sec:baseline-protocol}), is given below.
+All five are evaluated on $D_{\mathrm{val}}$ under the same retrieval-quality metrics (Section~\ref{sec:metrics}), and established implementations and published checkpoints are used where possible; their exact checkpoint, index, and retrieval parameters must be recorded. The winner of this comparison becomes $\mathrm{FSR}$, held fixed for the rest of the project. All baselines should use established implementations and published checkpoints where possible. GAR does not appear in this table: it is not a first-stage retriever, but a reranking algorithm applied on top of $\mathrm{FSR}$'s output. GAR's own comparison, against eleven reranking baselines (three of them adapted; Section~\ref{sec:baseline-protocol}), is given below.
 
 % ============================================================
 \section{Information Reranking Algorithms}
@@ -645,6 +645,7 @@ Because of context-length limits, a candidate list of $M$ passages is reranked w
 MIGRES+FSR & No reranking & Control\\
 MIGRES+FSR+MonoBERT & Cross-encoder pointwise & Reranking baseline\\
 MIGRES+FSR+MonoT5 & Seq2seq pointwise & Reranking baseline\\
+MIGRES+FSR+MonoT5-G & Seq2seq pointwise, query+gap & Gap-aware control baseline\\
 MIGRES+FSR+DuoBERT & Pairwise & Reranking baseline\\
 MIGRES+FSR+ColBERTv2 & Late interaction & Reranking baseline\\
 MIGRES+FSR+LambdaMART & Classical learning-to-rank & Reranking baseline\\
@@ -670,6 +671,11 @@ All rerankers are configured under one rule, fixed before any $D_{\mathrm{test}}
 \item \textbf{Checkpoints.} Every neural baseline uses a published checkpoint, identified by exact name and version, without fine-tuning on any $D_{\mathrm{val}}$ or $D_{\mathrm{test}}$ data. If no public checkpoint exists for a method (possibly RankT5), it is trained following the original recipe on the original training data (MS MARCO), never on the evaluation datasets.
 \item \textbf{Hyperparameters.} Each baseline's free hyperparameters ($\lambda_{\mathrm{MMR}}$; $\sigma$ for Dartboard; $M$ and $T$ for AIR; the tree parameters of LambdaMART) are either fixed at the values of the original publication or tuned on $D_{\mathrm{val}}$ only, with Recall@$k$ as the objective, over a grid fixed and recorded in advance. The number of configurations tried for each system is recorded. GAR uses Bayesian optimization, so the search budgets are not identical, and this is reported as a limitation together with the shared-$K_0$ limitation of Section~6.13.5.
 \item \textbf{LambdaMART.} It is implemented with a gradient-boosted-tree library using a LambdaRank objective (for example LightGBM). Its features are fixed in advance: the fused first-stage score, the first-stage rank, the fraction of $\tau(q)$ found in $\tau(d)$, and document length in tokens. It is trained on the official training split using question-only first-stage candidate lists from the selected $\mathrm{FSR}$ with binary relevance labels from the evidence annotations, because no MIGRES gap trajectories are generated on the training split. Its tree hyperparameters are tuned on $D_{\mathrm{val}}$.
+\item \textbf{Gap-aware neural control.} MonoT5-G is the same MonoT5 checkpoint and scoring rule as MonoT5, but it scores each candidate against the original question and each current gap requirement and uses
+\[
+S_{\mathrm{MonoT5-G}}(d)=\max\left(S_{\mathrm{MonoT5}}(q,d),\max_i S_{\mathrm{MonoT5}}(g_i,d)\right).
+\]
+This isolates the effect of giving a strong pointwise reranker access to the same gap information available to GAR; it uses no GAR coverage or novelty term.
 \item \textbf{RankGPT.} One fixed language model is used, namely the answer-generation model of the MIGRES configuration, recorded with its exact version. Decoding is deterministic (temperature $0$), the permutation-generation prompt of \citet{sun-etal-2023-chatgpt} is used and stored verbatim, the window is $w=20$ with step $s=10$, and the initial order is the fused first-stage order of Section~6.4.
 \item \textbf{Input length.} Each neural baseline truncates the document tail at its own maximum input length; the fraction of truncated candidates is reported for every baseline.
 \end{itemize}
@@ -985,72 +991,137 @@ The fixed embedding model and cosine similarity are also configuration choices, 
 \subsection{Overall Architecture}
 
 \begin{center}
-\begin{tikzpicture}[node distance=8mm and 7mm]
+\begin{tikzpicture}[
+    block/.style={
+        rectangle,
+        rounded corners,
+        draw,
+        align=center,
+        minimum width=30mm,
+        minimum height=9mm,
+        font=\small
+    },
+    important/.style={
+        block,
+        fill=blue!8
+    },
+    arrow/.style={
+        ->,
+        >=stealth,
+        thick
+    }
+]
 
-% Inputs
-\node[block] (q) {Question $q$};
-\node[block,left=of q] (g) {Current Gap $G_t$};
-\node[block,right=of q] (d) {Corpus $\mathcal{D}$};
+% ================================================================
+% INPUTS
+% ================================================================
 
-% First-stage retrieval
-\node[important,below=of q] (fsr) {First-Stage\\Retrieval $K_0$};
-\node[block,below=of fsr] (cand) {Candidate Set $\mathcal{C}_t$};
+\node[block] (g) at (0,10) {Current Gap $G_t$};
+\node[block] (q) at (5,10) {Question $q$};
+\node[block] (d) at (10,10) {Corpus $\mathcal{D}$};
 
-% Embedding, computed only over the candidate set (feeds Relevance and Novelty only)
-\node[important,below=of cand] (emb) {Sentence Transformer\\Embedding};
-\node[block,left=of emb] (e) {Evidence $E_t$};
+% ================================================================
+% FIRST-STAGE RETRIEVAL
+% ================================================================
 
-% GAR components
-\node[block,right=of cand] (r) {Relevance $R$};
-\node[block,below=of r] (c) {Coverage $C$\\(token overlap)};
-\node[block,below=of c] (n) {Novelty $N$};
+\node[important] (fsr) at (5,8)
+    {First-Stage\\Retrieval $K_0$};
 
-% Final score
-\node[important,right=of emb] (score)
-    {GAR Score\\$\alpha R+\beta C+\gamma N$};
+\node[block] (cand) at (5,6)
+    {Candidate Set $\mathcal{C}_t$};
 
-% Output and MIGRES
-\node[block,below=of score] (top) {Top-$k$ Documents};
-\node[block,below=of top] (mig) {MIGRES Filtering / Extraction};
-\node[block,left=of mig] (next) {Updated $E_{t+1},G_{t+1}$};
+\draw[arrow] (g.south) |- (fsr.west);
+\draw[arrow] (q.south) -- (fsr.north);
+\draw[arrow] (d.south) |- (fsr.east);
 
-% Inputs -> first-stage retrieval
-\draw[arrow] (q) -- (fsr);
-\draw[arrow] (g) -- (fsr);
-\draw[arrow] (d) -- (fsr);
-
-% First-stage retrieval -> candidate set
 \draw[arrow] (fsr) -- (cand);
 
-% Candidate set -> embedding (only Ct is embedded, not all of \mathcal{D})
-% Relevance and Novelty use embeddings; Coverage uses raw candidate/gap text directly.
+% ================================================================
+% EVIDENCE STATE
+% ================================================================
+
+\node[block] (e) at (12,6)
+    {Evidence $E_t$};
+
+% ================================================================
+% EMBEDDING
+% ================================================================
+
+\node[important] (emb) at (5,4)
+    {Sentence Transformer\\Embedding};
+
 \draw[arrow] (cand) -- (emb);
-\draw[arrow] (e) -- (emb);
-\draw[arrow] (cand.east) -- ++(4,0) |- (c.east);
-\draw[arrow] (g.south) |- (c.west);
 
-% Question -> embedding (q is embedded so that R(d,q)=s(d,q) can be computed)
-\draw[arrow] (q.north) -- ++(0,7mm) -| ([xshift=12mm,yshift=-4mm]score.east |- emb.south) -| (emb.south);
+% ================================================================
+% GAR COMPONENTS
+% ================================================================
 
-% Embedding -> Relevance and Novelty only
-\draw[arrow] (emb) -- (r);
-\draw[arrow] (emb) |- (n);
+\node[block] (r) at (0,2)
+    {Relevance $R$};
 
-% Components -> final score
-\draw[arrow] (r) -- (score);
-\draw[arrow] (c) -- (score);
-\draw[arrow] (n) -- (score);
+\node[block] (c) at (5,2)
+    {Coverage $C$\\(token overlap)};
 
-% Final ranking -> MIGRES
+\node[block] (n) at (10,2)
+    {Novelty $N$};
+
+% Relevance:
+% semantic similarity using q, G_t, and candidate embeddings
+\draw[arrow] (q.west) -| (r.north);
+\draw[arrow] (g.south) -- ++(0,-4.8) |- (r.west);
+\draw[arrow] (emb.west) -- ++(-5mm,0) |- (r.east);
+
+% Coverage:
+% lexical overlap between candidate text and gap requirements
+\draw[arrow] (cand.east) -- ++(10mm,0) |- (c.north);
+\draw[arrow] (g.south) -- ++(0,-5.2) |- (c.west);
+
+% Novelty:
+% semantic similarity between candidate embeddings and E_t
+\draw[arrow] (emb.east) -- ++(10mm,0) |- (n.north);
+\draw[arrow] (e.west) -- ++(-8mm,0) |- (n.east);
+
+% ================================================================
+% GAR SCORE
+% ================================================================
+
+\node[important] (score) at (5,0)
+    {GAR Score\\$\alpha R+\beta C+\gamma N$};
+
+\draw[arrow] (r.south) -- ++(0,-5mm) -| (score.west);
+\draw[arrow] (c.south) -- (score.north);
+\draw[arrow] (n.south) -- ++(0,-5mm) -| (score.east);
+
+% ================================================================
+% OUTPUT
+% ================================================================
+
+\node[block] (top) at (5,-2)
+    {Top-$k$ Documents};
+
+\node[block] (mig) at (5,-4)
+    {MIGRES Filtering / Extraction};
+
+\node[block] (next) at (5,-6)
+    {Updated State\\$E_{t+1},G_{t+1}$};
+
 \draw[arrow] (score) -- (top);
 \draw[arrow] (top) -- (mig);
-
-% MIGRES updates the state
 \draw[arrow] (mig) -- (next);
 
-% Feedback loop for next iteration
-\draw[arrow] (next.west) -- ++(-7,0) |- (g.west);
-\draw[arrow] (next.west) -- ++(-8,0) |- (e.west);
+% ================================================================
+% ITERATIVE FEEDBACK
+% ================================================================
+
+% Updated gap -> next iteration
+\draw[arrow]
+    (next.west) -- (-3,-6)
+    |- (g.west);
+
+% Updated evidence -> next iteration
+\draw[arrow]
+    (next.east) -- (13,-6)
+    |- (e.east);
 
 \end{tikzpicture}
 \end{center}
@@ -1405,7 +1476,7 @@ Because $K_0$ is one of the parameters selected by Bayesian optimization on $D_{
 \item Run Bayesian optimization on $D_{\mathrm{val}}$ through the complete MIGRES+FSR+GAR pipeline.
 \item Freeze $\alpha,\beta,\gamma,K_0$.
 \item Run the held-out $D_{\mathrm{test}}$ with the frozen configuration.
-\item Run MonoBERT, MonoT5, DuoBERT, ColBERTv2, LambdaMART, RankT5, MMR, AIR, Dartboard/RIG, and RankGPT as rerankers on the identical $\mathrm{FSR}$ candidate set, using their established implementations.
+\item Run MonoBERT, MonoT5, MonoT5-G, DuoBERT, ColBERTv2, LambdaMART, RankT5, MMR, AIR, Dartboard/RIG, and RankGPT as rerankers on the identical $\mathrm{FSR}$ candidate set, using their established implementations.
 \item Evaluate retrieval quality, downstream answer quality, efficiency, and cost.
 \item Run GAR ablations using the same frozen evaluation protocol.
 \end{enumerate}
@@ -1652,7 +1723,7 @@ These methods are compared \emph{only} as candidate-generation (first-stage) ret
 
 \textbf{Cost measurements.} For each system we also report retrieval latency per query, indexing time, index memory, and the number of retrieved candidates ($K_0^{\mathrm{E1}}$), on the same recorded hardware.
 
-\textbf{Selection rule.} The primary purpose of E1 is to select $\mathrm{FSR}$ on $D_{\mathrm{val}}$. The system with the highest macro-averaged (across the six datasets) candidate-pool recall $\mathrm{CandRecall}@K_0^{\mathrm{sel}}$ on $D_{\mathrm{val}}$ (Section~\ref{sec:metric-defs}) is selected; it is chosen because candidate generation must not lose the evidence that later stages need, and it measures exactly the candidate set $\mathcal{C}_t$ that every reranker will receive. Because a larger pool trivially raises recall, the mean pool size is reported next to it. If two systems tie at the reported precision, the tie is broken by smaller mean pool size, and then by lower latency. The selected system is frozen as $\mathrm{FSR}$ and used unchanged in E2--E5.
+\textbf{Selection rule.} The primary purpose of E1 is to select $\mathrm{FSR}$ on $D_{\mathrm{val}}$. The system with the highest macro-averaged (across the six datasets) candidate-pool recall $\mathrm{CandRecall}@K_0^{\mathrm{sel}}$ on $D_{\mathrm{val}}$ (Section~\ref{sec:metric-defs}) is selected; it is chosen because candidate generation must not lose the evidence that later stages need, and it measures exactly the candidate set $\mathcal{C}_t$ that every reranker will receive. Because a larger pool trivially raises recall, the mean pool size is reported next to it. If two systems tie at the reported candidate recall, the tie is broken by smaller mean pool size, and then by lower latency. The selected system is frozen as $\mathrm{FSR}$ and used unchanged in E2--E5.
 
 \textbf{What E1 does and does not show.} E1 does \emph{not} test GAR and is not evidence that GAR is effective. It only determines the fixed retrieval substrate on which the reranking study is run.
 
@@ -1665,7 +1736,7 @@ These methods are compared \emph{only} as candidate-generation (first-stage) ret
 \textbf{Systems.}
 \[
 \begin{aligned}
-&\text{FSR (no reranking)},\; \text{MonoBERT},\; \text{MonoT5},\; \text{DuoBERT},\; \text{ColBERTv2},\; \text{LambdaMART},\\
+&\text{FSR (no reranking)},\; \text{MonoBERT},\; \text{MonoT5},\; \text{MonoT5-G},\; \text{DuoBERT},\; \text{ColBERTv2},\; \text{LambdaMART},\\
 &\text{RankT5},\; \text{MMR},\; \text{AIR},\; \text{Dartboard/RIG},\; \text{RankGPT},\; \text{GAR}.
 \end{aligned}
 \]
@@ -2042,7 +2113,7 @@ on the primary retrieval metric, Recall@$k$, pooled across the six datasets, tes
 \midrule
 T0 & GAR vs.\ $\mathrm{FSR}$ & Recall@$k$ & H2 & 1, confirmatory\\
 S1 & GAR vs.\ $B^\star$ & Recall@$k$ & H3 & 1\\
-S2 & GAR vs.\ each of the other nine rerankers & Recall@$k$ & H3 & 9\\
+S2 & GAR vs.\ each of the other ten rerankers & Recall@$k$ & H3 & 10\\
 S3 & GAR vs.\ $\mathrm{FSR}$ & MRR@10, nDCG@10, official answer metric & H2, H4 & 3\\
 S4 & Full GAR vs.\ $S_{-C}$ & Recall@$k$, GapEvidenceCoverage@$k$ & H5 & 2\\
 S5 & Full GAR vs.\ $S_{-N}$ & Recall@$k$, GapEvidenceCoverage@$k$, Redundancy@$k$ & H6 & 3\\
@@ -2050,7 +2121,7 @@ S6 & Full GAR vs.\ $S_{-R}$ & Recall@$k$, MRR@10, nDCG@10 & H7 & 3\\
 S7 & Full GAR vs.\ $GAR_{R\text{-only}}$ & Recall@$k$ & (E3) & 1\\
 \bottomrule
 \end{tabularx}
-\caption{Pre-registered test list. T0 is confirmatory; S1--S7 form the Holm family (22 tests per analysis unit when every metric is available).}
+\caption{Pre-registered test list. T0 is confirmatory; S1--S7 form the Holm family (24 tests per analysis unit when every metric is available).}
 \label{tab:tests}
 \end{table}
 
@@ -2129,7 +2200,7 @@ Pre-registration record & Test list, $B^\star$, and metric-to-annotation mapping
 \textbf{Experiment} & \textbf{Systems} & \textbf{Data} & \textbf{Main purpose}\\
 \midrule
 E1 & BM25, DPR, Contriever, ColBERTv2, SPLADE & $D_{\mathrm{val}}$ & Select $\mathrm{FSR}$\\
-E2 & $\mathrm{FSR}$, MonoBERT, MonoT5, DuoBERT, ColBERTv2, LambdaMART, RankT5, MMR, AIR, Dartboard/RIG, RankGPT, GAR & $D_{\mathrm{test}}$ & Main reranking comparison\\
+E2 & $\mathrm{FSR}$, MonoBERT, MonoT5, MonoT5-G, DuoBERT, ColBERTv2, LambdaMART, RankT5, MMR, AIR, Dartboard/RIG, RankGPT, GAR & $D_{\mathrm{test}}$ & Main reranking comparison\\
 E3 & GAR and component ablations ($S_{-R}$, $S_{-C}$, $S_{-N}$, $GAR_{R\text{-only}}$) & $D_{\mathrm{test}}$ & Component contribution\\
 E4 & GAR with $K_0\in\{50,100,200,500\}$ & $D_{\mathrm{val}}$ & Candidate-pool sensitivity\\
 E5 & GAR + all relevant baselines & $D_{\mathrm{test}}$ & Efficiency and cost\\
