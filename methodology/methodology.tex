@@ -225,60 +225,38 @@
 
 \begin{document}
 
-% ============================================================
-% PAGE 1
-% TITLE PAGE
+% PAGE 1 -- TITLE PAGE
 % ============================================================
 
 \begin{titlepage}
-
 \thispagestyle{empty}
-
 \begin{center}
 
 \vspace*{0.58in}
 
 {\fontsize{16}{19}\selectfont\bfseries
-Gap-Aware Retrieval (GAR):\par}
+SAR: State Aware Retrieval\\for Iterative Retrieval Augmented Generation\par}
 
-\vspace{0.08in}
-
-{\fontsize{16}{19}\selectfont\bfseries
-Adaptive Retrieval Using Information Gaps\par
-and Existing Evidence\par}
-
-\vspace{0.42in}
+\vspace{0.18in}
 
 {\fontsize{12}{18}\selectfont
 A Project Report Submitted in\par}
-
 \vspace{0.12in}
-
 {\fontsize{12}{18}\selectfont
 partial fulfillment of requirements for the degree of\par}
-
 \vspace{0.12in}
-
 {\fontsize{12}{18}\selectfont
 Bachelor of Technology\par}
-
 \vspace{0.10in}
-
 {\fontsize{12}{18}\selectfont\bfseries\itshape
 In\par}
-
 \vspace{0.08in}
-
 {\fontsize{12}{18}\selectfont
 Computer Engineering\par}
-
 \vspace{0.10in}
-
 {\fontsize{12}{18}\selectfont\bfseries\itshape
 By\par}
-
 \vspace{0.08in}
-
 {\fontsize{12}{18}\selectfont
 Kunal Dahal (22CSEC17)\par
 Aniket Manger (22CSEC23)\par
@@ -288,86 +266,56 @@ Suman Chettri (22CSEC44)\par}
 
 {\fontsize{12}{18}\selectfont\itshape
 Under the supervision of\par}
-
 \vspace{0.06in}
-
 {\fontsize{14}{17}\selectfont\bfseries
 Mr. Anmol Pandey\par}
-
 \vspace{0.04in}
-
 {\fontsize{12}{18}\selectfont
 Assistant Professor\par}
-
 \vspace{0.04in}
-
 {\fontsize{12}{18}\selectfont
 Computer Engineering Department\par}
-
 \vspace{0.12in}
 
-% ------------------------------------------------------------
-% LOGO
-% ------------------------------------------------------------
-
-\IfFileExists{image1.png}{\includegraphics[width=0.82in]{image1.png}}{\vspace{0.82in}}
+\IfFileExists{image1.png}{\includegraphics[width=0.82in]{image1.png}}{\fbox{\rule{0pt}{0.82in}\rule{0.82in}{0pt}}}
 
 \vspace{0.10in}
-
 {\fontsize{14}{17}\selectfont\bfseries
 Department Of Computer Engineering\par}
-
 \vspace{0.04in}
-
 {\fontsize{14}{17}\selectfont\bfseries
 Sikkim Institute of Science and Technology\par}
-
 \vspace{0.04in}
-
 {\fontsize{14}{17}\selectfont\bfseries
 (A constituent college of Sikkim University)\par}
-
 \vspace{0.04in}
-
 {\fontsize{14}{17}\selectfont\bfseries
 2026\par}
 
 \end{center}
-
 \end{titlepage}
 
 % ============================================================
-% START ROMAN PAGE NUMBERING
-% ============================================================
-
 \pagenumbering{roman}
-\setcounter{page}{1}
 
-% ============================================================
-% PAGE 2
-% ABSTRACT
+% PAGE 2 -- ABSTRACT
 % ============================================================
 
 \fronttitle{ABSTRACT}
-
 \justifying
 
-Retrieval-Augmented Generation (RAG) systems use external documents to provide large language models (LLMs) with information that may not be available in their parameters. In iterative and multi-hop information-seeking tasks, however, a conventional retriever may repeatedly return documents that are relevant to the original question but do not resolve the information that remains missing.
+Retrieval-Augmented Generation (RAG) systems rely on effective retrieval of external information to support language models in answering questions that may require knowledge beyond their internal parameters. While conventional retrieval methods primarily focus on the relevance of documents to the original query, this objective becomes less sufficient in iterative retrieval settings, where some of the required information may already have been collected, and subsequent retrieval needs to focus on what is still missing. In such settings, repeatedly retrieving documents that are similar to previously obtained evidence can lead to redundancy and limit the usefulness of later retrieval steps.
 
-This project develops a methodology for investigating \textbf{Gap-Aware Retrieval (GAR)} within the Missing Information Guided Retrieve-Extraction-Solving (MIGRES) framework. MIGRES supplies the current question, previously collected evidence, and the information gap at each retrieval iteration. GAR uses these signals to rank candidate documents according to gap-aware relevance, coverage of missing information, and novelty with respect to existing evidence.
+This project explores \textbf{State Aware Retrieval}, a retrieval approach developed for iterative information retrieval. The approach considers not only the relevance of a document to the question, but also the extent to which it is related to information that is currently missing and to evidence that has already been collected. These signals are used to guide retrieval toward documents that can provide useful complementary information.
 
-The methodology uses a fixed sentence-embedding model, approximate nearest-neighbor (ANN) candidate generation, and a weighted GAR scoring function. The proposed retriever is evaluated against BM25, DPR, Contriever, ColBERTv2, and SPLADE under controlled experimental conditions, with the validation split used for selecting GAR scoring hyperparameters before the test evaluation.
-
-The evaluation considers retrieval effectiveness, downstream question-answering quality, ablation of the GAR components, iteration-wise behavior, failure cases, computational efficiency, and reproducibility. The methodology is designed to determine whether explicitly modeling the information gap and previously collected evidence improves iterative retrieval without changing the surrounding MIGRES reasoning, extraction, and solving components.
+The proposed approach is integrated into the MIGRES framework, where missing information is identified during the retrieval process and used to guide subsequent information seeking. State Aware Retrieval focuses on the document selection step, with the broader objective of making iterative retrieval more targeted, less redundant, and better aligned with the information that remains necessary for answering a question.
 
 \vspace{0.10in}
-
-\textbf{Keywords:}
-Retrieval-Augmented Generation, Information Retrieval, MIGRES, Gap-Aware Retrieval, Information Gap, Multi-Hop Question Answering, Dense Retrieval, Approximate Nearest Neighbor Search.
+\textbf{Keywords:} Retrieval-Augmented Generation, Information Retrieval,  Iterative Retrieval, Multi-Hop Question Answering.
 \clearpage
 
-
 % ============================================================
+
 % PAGE 3
 % TABLE OF CONTENTS
 % ============================================================
@@ -382,7 +330,6 @@ Retrieval-Augmented Generation, Information Retrieval, MIGRES, Gap-Aware Retriev
 \begin{tabular}{|>{\centering\arraybackslash}p{0.55in}|
                 >{\centering\arraybackslash}p{5.5in}|
                 >{\centering\arraybackslash}p{0.55in}|}
-
 \hline
 \textbf{CHP NO.} & \textbf{TOPICS} & \textbf{PAGE NO.} \\
 \hline
@@ -402,17 +349,17 @@ Retrieval-Augmented Generation, Information Retrieval, MIGRES, Gap-Aware Retriev
 \hline
 4. & OBJECTIVES & 8 \\
 \hline
-5. & SOLUTION STRATEGY / METHODOLOGY & 9--18 \\
+5. & SOLUTION STRATEGY / METHODOLOGY & 9--24 \\
 \hline
-6. & SOFTWARE AND HARDWARE REQUIREMENTS & 19--20 \\
+6. & SOFTWARE AND HARDWARE REQUIREMENTS & 25--26 \\
 \hline
-7. & APPLICATIONS & 21 \\
+7. & APPLICATIONS & 27 \\
 \hline
-8. & GANTT CHART & 22 \\
+8. & GANTT CHART & 28 \\
 \hline
-9. & CONCLUSION & 23 \\
+9. & CONCLUSION & 29 \\
 \hline
-& REFERENCES & 24--25 \\
+& REFERENCES & 30 \\
 \hline
 \end{tabular}%
 }
@@ -423,6 +370,8 @@ Retrieval-Augmented Generation, Information Retrieval, MIGRES, Gap-Aware Retriev
 
 
 % ============================================================
+
+
 % PAGE 4
 % LIST OF TABLES AND FIGURES
 % ============================================================
@@ -451,13 +400,21 @@ Retrieval-Augmented Generation, Information Retrieval, MIGRES, Gap-Aware Retriev
 \hline
 2.5 & Literature Survey 5 & 6 \\
 \hline
-5.1 & Retrieval baseline comparison & 15 \\
+5.1 & State Aware Retrieval Settings & 16 \\
 \hline
-5.2 & GAR hyperparameters & 15 \\
+5.2 & State Aware Retrieval hyperparameters & 16 \\
 \hline
-6.1 & Software requirements & 17 \\
+5.3 & State Aware Retrieval settings & 16 \\
 \hline
-6.2 & Modules Description & 18 \\
+5.4 & State Aware Retrieval Hyperparameters & 18 \\
+\hline
+5.5 & State Aware Retrieval Parameters & 18 \\
+\hline
+5.6 & Information Retrieval Baseline Comparison & 19 \\
+\hline
+6.1 & Software Requirements & 25 \\
+\hline
+6.2 & Modules Description & 26 \\
 \hline
 \end{tabular}%
 }
@@ -480,11 +437,13 @@ Retrieval-Augmented Generation, Information Retrieval, MIGRES, Gap-Aware Retriev
 \hline
 \textbf{FIGURE NO.} & \textbf{TITLE} & \textbf{PAGE NO.} \\
 \hline
-5.1 & GAR methodology within the MIGRES framework & 10 \\
+5.1 & Architecture of State Aware Retrieval & 11 \\
 \hline
-5.2 & Operational flow of the proposed GAR-based iterative retrieval solution & 11 \\
+5.2 & Operational Flow of State Aware Retrieval & 12 \\
 \hline
-8.1 & Gantt Chart & 22 \\
+5.3 & Sentence Transformer Based Retrieval Representation & 17 \\
+\hline
+8.1 & Gantt Chart & 28 \\
 \hline
 \end{tabular}%
 }
@@ -495,462 +454,290 @@ Retrieval-Augmented Generation, Information Retrieval, MIGRES, Gap-Aware Retriev
 
 
 % ============================================================
-% CHAPTER 1
-% INTRODUCTION
+
+
+% CHAPTER 1 -- INTRODUCTION
 % ============================================================
+
 \pagenumbering{arabic}
 \setcounter{page}{1}
 \addcontentsline{toc}{chapter}{1. INTRODUCTION}
-
 \chaptertitle{1}{INTRODUCTION}
-
 \justifying
 
-Retrieval-Augmented Generation (RAG) combines information retrieval with large language models (LLMs) to improve answer generation using information from external documents. Instead of relying only on the knowledge stored in the model, RAG retrieves relevant information and provides it as context to the LLM. The quality of the retrieved information therefore has an important effect on the final answer.
+Retrieval-Augmented Generation (RAG) is a technique that combines information retrieval with large language models to improve question answering. Instead of depending only on the information stored in a language model, RAG retrieves relevant information from external documents and uses it to generate an answer \cite{lewis2020rag}. This makes RAG useful for tasks where the required information may be spread across different documents.
 
-Traditional retrieval methods mainly select documents based on their relevance to the given query. This can become challenging for complex and multi-hop questions, where the answer may require information from multiple documents. After one retrieval step, some information may already be available while other information is still missing. In such cases, retrieving documents based only on the original query may result in repeated or less useful information.
+However, answering complex questions is not always as simple as finding documents that are related to the question. Some questions require multiple pieces of information, and the first retrieval step may provide only part of what is needed. Multi-hop question answering benchmarks and iterative retrieval methods show that solving such questions can require evidence from multiple passages or documents and repeated retrieval steps \cite{yang2018hotpotqa,trivedi2022musique,yadav2020iterative}. If the retrieval system continues to select documents mainly because they are related to the original question, it may repeatedly retrieve similar information instead of finding the missing evidence.
 
-The MIGRES framework addresses this issue by using missing information to guide iterative retrieval. After recovering and processing the evidence, MIGRES identifies what information is still missing and uses it to guide the next retrieval step \cite{wang2025migres}. This provides a useful direction for improving retrieval in multi-step question answering.
+MIGRES (Missing Information Guided Retrieve-Extraction-Solving) provides a framework for handling this type of iterative information retrieval. It keeps track of the information already collected and identifies information that is still required to answer the question \cite{wang2025migres}. This creates an opportunity to improve the retrieval stage by considering not only the original question, but also the current information gap and the evidence already collected. Related work on relevant information gain also motivates reducing redundant evidence while preserving useful information for RAG \cite{pickett2024better}.
 
-Recent research has also explored other ways to improve the usefulness of the retrieved information. Relevant Information Gain considers whether retrieved information provides useful new content rather than unnecessary repetition \cite{pickett2024better}. InfoGain-RAG similarly investigates document information gain for reranking and filtering retrieved documents \cite{wang2025infogain}. Other work has considered source reliability as an additional factor in RAG \cite{hwang2025reliability}, while ColBERTv2 provides an efficient late-interaction approach for document retrieval \cite{santhanam2022colbertv2}.
+This project proposes a State Aware Retrieval for improving document selection in such iterative RAG systems. The main idea is to select documents based on their relevance to the question, their usefulness for covering the missing information, and the amount of new information they can provide compared with the evidence already collected.
 
-From the study of MIGRES and these related approaches, this project identified a possible opportunity to improve iterative retrieval. The main observation is that the retrieval process could consider not only the original question but also what information is currently missing and what evidence has already been collected.
+The proposed approach will be studied within the MIGRES framework and evaluated on question-answering datasets. It will be compared with existing retrieval approaches to examine its effect on retrieval quality, answer quality, and retrieval efficiency. The study will also investigate the importance of the different factors considered by the proposed approach.
 
-The study of MIGRES and related retrieval approaches has motivated further investigation into how iterative retrieval can be improved. This project will explore the idea of \textbf{Gap-Aware Retrieval (GAR)}, focusing on whether the current information gap and previously collected evidence can help guide iterative retrieval. The concept will be further studied, refined, and developed during the subsequent stages of the project.
+The overall aim of this project is to explore whether making the retrieval process aware of the current information gap can help RAG systems retrieve more useful and complementary evidence for complex questions.
 
 \clearpage
 
-
 % ============================================================
-% CHAPTER 2
-% LITERATURE SURVEY
+
+
+% CHAPTER 2 -- LITERATURE SURVEY
 % ============================================================
 
 \addcontentsline{toc}{chapter}{2. LITERATURE SURVEY}
-
 \chaptertitle{2}{LITERATURE SURVEY}
-
 \small
 
-% ============================================================
+% ------------------------------------------------------------
 % PAPER 1
-% ============================================================
-
-\begin{center}
-\textbf{Table 2.1: Literature Survey 1}
-\end{center}
-
+% ------------------------------------------------------------
+\begin{center}\textbf{Table 2.1: Literature Survey 1}\end{center}
 \begin{longtable}{|p{1.25in}|p{5.15in}|}
-
 \hline
+\textbf{Name of paper} & Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks \cite{lewis2020rag} \\ \hline
 
-\textbf{Name of paper} &
-\textbf{LLMs Know What They Need: Leveraging a Missing Information Guided Framework to Empower Retrieval-Augmented Generation}
-\\ \hline
+\textbf{Authors} & Patrick Lewis, Ethan Perez, Aleksandra Piktus, Fabio Petroni, Vladimir Karpukhin, Naman Goyal, Heinrich K\"uttler, Mike Lewis, Wen-tau Yih, Tim Rockt\"aschel, Sebastian Riedel, and Douwe Kiela \\ \hline
 
-\textbf{Authors} &
-Keheng Wang, Feiyu Duan, Peiguang Li, Sirui Wang, and Xunliang Cai
-\\ \hline
-
-\textbf{Publication Details} &
-Proceedings of the 31st International Conference on Computational Linguistics (COLING), 2025, pp. 2379--2400.
-\\ \hline
+\textbf{Publication Details} & Advances in Neural Information Processing Systems 33 (NeurIPS), 2020, pp. 9459--9474. \\ \hline
 
 \textbf{Research Findings} &
-\begin{itemize}[
-    leftmargin=0.18in,
-    itemsep=0.05in,
-    topsep=0pt,
-    parsep=0pt
-]
-    \item The ability of LLMs to extract useful information from retrieved documents and identify information that is still missing is experimentally demonstrated.
-
-    \item MIGRES is introduced as a Missing Information Guided Retrieve-Extraction-Solving framework, where the identified missing information is used to generate a targeted query for subsequent retrieval.
-
-    \item Sentence-level reranking and filtering are introduced to remove irrelevant content from retrieved documents before useful information is extracted.
-\end{itemize}
-\\ \hline
+\begin{itemize}[leftmargin=0.18in,itemsep=0.05in,topsep=0pt,parsep=0pt]
+\item RAG combines information stored in a language model with information retrieved from external documents.
+\item Retrieved passages help the model answer questions that require outside knowledge.
+\item The approach shows that retrieval can improve the performance of language generation for knowledge-intensive tasks.
+\item The work provides a basic foundation for modern retrieval-augmented generation systems.
+\end{itemize} \\ \hline
 
 \textbf{Research Gap} &
-\begin{itemize}[
-    leftmargin=0.18in,
-    itemsep=0.05in,
-    topsep=0pt,
-    parsep=0pt
-]
-    \item Although MIGRES improves iterative retrieval, its performance still depends on the quality of the generated queries and the knowledge returned by the retriever.
-
-    \item The framework can still encounter hard-negative passages that receive high relevance scores but do not provide useful information, which makes effective evidence selection challenging.
-\end{itemize}
-\\ \hline
+\begin{itemize}[leftmargin=0.18in,itemsep=0.05in,topsep=0pt,parsep=0pt]
+\item The main retrieval process is based on finding passages relevant to the given question.
+\item It does not mainly focus on identifying which information is still missing after previous evidence has been retrieved.
+\item The work does not specifically study how retrieval can change according to the information already collected.
+\end{itemize} \\ \hline
 
 \textbf{Relevance with Our Work} &
-\begin{itemize}[
-    leftmargin=0.18in,
-    itemsep=0.05in,
-    topsep=0pt,
-    parsep=0pt
-]
-    \item MIGRES provides the base iterative RAG framework for investigating whether the retrieval stage can be further improved using the information available at each retrieval step.
-\end{itemize}
-\\ \hline
-
+\begin{itemize}[leftmargin=0.18in,itemsep=0.05in,topsep=0pt,parsep=0pt]
+\item This paper provides the basic RAG background for our project.
+\item It supports the use of external documents to provide additional information to language models.
+\item Our work builds on this general retrieval setting by studying retrieval in a more iterative information-seeking process.
+\end{itemize} \\ \hline
 \end{longtable}
-
 \clearpage
 
 
-% ============================================================
+% ------------------------------------------------------------
 % PAPER 2
-% ============================================================
-
-\begin{center}
-\textbf{Table 2.2: Literature Survey 2}
-\end{center}
-
+% ------------------------------------------------------------
+\begin{center}\textbf{Table 2.2: Literature Survey 2}\end{center}
 \begin{longtable}{|p{1.25in}|p{5.15in}|}
-
 \hline
 
-\textbf{Name of paper} &
-\textbf{Better RAG using Relevant Information Gain}
-\\ \hline
+\textbf{Name of paper} & Leveraging Passage Retrieval with Generative Models for Open Domain Question Answering \cite{izacard2021fid} \\ \hline
 
-\textbf{Authors} &
-Marc Pickett, Jeremy Hartman, Ayan Kumar Bhowmick, Raquib-ul Alam, and Aditya Vempaty
-\\ \hline
+\textbf{Authors} & Gautier Izacard and Edouard Grave \\ \hline
 
-\textbf{Publication Details} &
-arXiv preprint, 2024.
-\\ \hline
+\textbf{Publication Details} & Proceedings of the 16th Conference of the European Chapter of the Association for Computational Linguistics (EACL), 2021, pp. 874--880. \\ \hline
 
 \textbf{Research Findings} &
-\begin{itemize}[
-    leftmargin=0.18in,
-    itemsep=0.05in,
-    topsep=0pt,
-    parsep=0pt
-]
-    \item The limited context window of RAG systems can cause redundant passages to occupy space that could otherwise be used for useful information.
-
-    \item A Relevant Information Gain metric is introduced to measure the total information relevant to a query provided by a set of retrieved passages.
-
-    \item The Dartboard retrieval method is developed using the proposed metric, allowing diverse passages to be selected without explicitly adding a separate diversity term.
-
-    \item The method is evaluated on the Retrieval Augmented Generation Benchmark (RGB) and is reported to outperform existing retrieval approaches based on relevance and diversity.
-\end{itemize}
-\\ \hline
+\begin{itemize}[leftmargin=0.18in,itemsep=0.05in,topsep=0pt,parsep=0pt]
+\item The method retrieves multiple passages and provides them to a generative model.
+\item The model can use information from several passages to answer a question.
+\item Using useful information from multiple retrieved passages can improve question-answering performance.
+\item The work shows the importance of selecting and using several relevant pieces of evidence.
+\end{itemize} \\ \hline
 
 \textbf{Research Gap} &
-\begin{itemize}[
-    leftmargin=0.18in,
-    itemsep=0.05in,
-    topsep=0pt,
-    parsep=0pt
-]
-    \item The proposed retrieval objective is defined for selecting a set of passages for a query, while the study does not specifically address how the retrieval objective should change when new evidence is collected through multiple retrieval steps.
-
-    \item The evaluation is mainly conducted using the RGB benchmark, leaving the effectiveness of the approach in other iterative or multi-step retrieval settings open for further investigation.
-\end{itemize}
-\\ \hline
+\begin{itemize}[leftmargin=0.18in,itemsep=0.05in,topsep=0pt,parsep=0pt]
+\item The focus is mainly on how a generative model uses multiple retrieved passages.
+\item It does not mainly study how the retrieval process should identify information that is missing from earlier evidence.
+\item The retrieved passages are not selected according to a changing information state across multiple retrieval steps.
+\end{itemize} \\ \hline
 
 \textbf{Relevance with Our Work} &
-\begin{itemize}[
-    leftmargin=0.18in,
-    itemsep=0.05in,
-    topsep=0pt,
-    parsep=0pt
-]
-    \item The paper provides a basis for considering the usefulness and redundancy of retrieved information when selecting documents, which is relevant to the retrieval problem being investigated in this project.
-\end{itemize}
-\\ \hline
-
+\begin{itemize}[leftmargin=0.18in,itemsep=0.05in,topsep=0pt,parsep=0pt]
+\item This work supports the importance of collecting multiple useful pieces of evidence.
+\item It is indirectly related to our goal of improving the usefulness of retrieved documents.
+\item Our project further considers how the current information need can be used when selecting documents during iterative retrieval.
+\end{itemize} \\ \hline
 \end{longtable}
-
 \clearpage
 
 
-% ============================================================
+% ------------------------------------------------------------
 % PAPER 3
-% ============================================================
-
-\begin{center}
-\textbf{Table 2.3: Literature Survey 3}
-\end{center}
-
+% ------------------------------------------------------------
+\begin{center}\textbf{Table 2.3: Literature Survey 3}\end{center}
 \begin{longtable}{|p{1.25in}|p{5.15in}|}
-
 \hline
 
-\textbf{Name of paper} &
-\textbf{InfoGain-RAG: Boosting Retrieval-Augmented Generation through Document Information Gain-based Reranking and Filtering}
-\\ \hline
+\textbf{Name of paper} & LLMs Know What They Need: Leveraging a Missing Information Guided Framework to Empower Retrieval-Augmented Generation \cite{wang2025migres} \\ \hline
 
-\textbf{Authors} &
-Zihan Wang, Zihan Liang, Zhou Shao, Yufei Ma, Huangyu Dai, Ben Chen, Lingtao Mao, Chenyi Lei, Yuqing Ding, and Han Li
-\\ \hline
+\textbf{Authors} & Keheng Wang, Feiyu Duan, Peiguang Li, Sirui Wang, and Xunliang Cai \\ \hline
 
-\textbf{Publication Details} &
-Proceedings of the 2025 Conference on Empirical Methods in Natural Language Processing (EMNLP), 2025, pp. 7190--7204.
-\\ \hline
+\textbf{Publication Details} & Proceedings of the 31st International Conference on Computational Linguistics (COLING), 2025, pp. 2379--2400. \\ \hline
 
 \textbf{Research Findings} &
-\begin{itemize}[
-    leftmargin=0.18in,
-    itemsep=0.05in,
-    topsep=0pt,
-    parsep=0pt
-]
-    \item Document Information Gain (DIG) is introduced to measure the contribution of an individual retrieved document to correct answer generation.
-
-    \item DIG is calculated from the change in the LLM's generation confidence when a document is added to the context.
-
-    \item InfoGain-RAG uses DIG scores to train a multi-task reranker that performs document filtering and ranking.
-
-    \item Experiments across different RAG models and benchmarks show that the proposed method improves answer generation compared with several existing retrieval and reranking approaches.
-\end{itemize}
-\\ \hline
+\begin{itemize}[leftmargin=0.18in,itemsep=0.05in,topsep=0pt,parsep=0pt]
+\item MIGRES identifies information that is still missing after processing the retrieved evidence.
+\item The identified missing information is used to guide the next retrieval step.
+\item The framework performs retrieval and evidence processing in multiple steps.
+\item The approach is designed for questions that require several pieces of information.
+\end{itemize} \\ \hline
 
 \textbf{Research Gap} &
-\begin{itemize}[
-    leftmargin=0.18in,
-    itemsep=0.05in,
-    topsep=0pt,
-    parsep=0pt
-]
-    \item The current implementation is evaluated only on text-based retrieval tasks, while its application to other modalities such as visual or code information is left for future work.
-
-    \item The DIG metric measures the contribution of a document to answer generation but cannot determine whether the information within that document is factually correct.
-
-    \item The reranker size is limited by computational constraints, which may restrict the performance that could be obtained from larger models.
-\end{itemize}
-\\ \hline
+\begin{itemize}[leftmargin=0.18in,itemsep=0.05in,topsep=0pt,parsep=0pt]
+\item The framework mainly focuses on identifying missing information and guiding the next retrieval query.
+\item There is still room to study how candidate documents can be ranked using both the missing information and the evidence already collected.
+\item Different document-ranking strategies may affect which evidence is selected during the iterative process.
+\end{itemize} \\ \hline
 
 \textbf{Relevance with Our Work} &
-\begin{itemize}[
-    leftmargin=0.18in,
-    itemsep=0.05in,
-    topsep=0pt,
-    parsep=0pt
-]
-    \item The paper provides a useful basis for considering the contribution of retrieved documents when designing an improved document selection strategy.
-\end{itemize}
-\\ \hline
-
+\begin{itemize}[leftmargin=0.18in,itemsep=0.05in,topsep=0pt,parsep=0pt]
+\item MIGRES provides an important background for understanding missing information during iterative RAG.
+\item It supports the idea that later retrieval should focus on information that is still required.
+\item Our project uses this general idea as motivation for studying a gap-aware retrieval and reranking approach.
+\item The paper provides the main framework in which our proposed approach can be investigated.
+\end{itemize} \\ \hline
 \end{longtable}
-
 \clearpage
 
 
-% ============================================================
+% ------------------------------------------------------------
 % PAPER 4
-% ============================================================
-
-\begin{center}
-\textbf{Table 2.4: Literature Survey 4}
-\end{center}
-
+% ------------------------------------------------------------
+\begin{center}\textbf{Table 2.4: Literature Survey 4}\end{center}
 \begin{longtable}{|p{1.25in}|p{5.15in}|}
-
 \hline
 
-\textbf{Name of paper} &
-\textbf{Retrieval-Augmented Generation with Estimation of Source Reliability}
-\\ \hline
+\textbf{Name of paper} & Unsupervised Alignment-based Iterative Evidence Retrieval for Multi-hop Question Answering \cite{yadav2020iterative} \\ \hline
 
-\textbf{Authors} &
-Jeongyeon Hwang, Junyoung Park, Hyejin Park, Dongwoo Kim, Sangdon Park, and Jungseul Ok
-\\ \hline
+\textbf{Authors} & Vikas Yadav, Steven Bethard, and Mihai Surdeanu \\ \hline
 
-\textbf{Publication Details} &
-Proceedings of the 2025 Conference on Empirical Methods in Natural Language Processing (EMNLP), 2025, pp. 34279--34303.
-\\ \hline
+\textbf{Publication Details} & Proceedings of the 58th Annual Meeting of the Association for Computational Linguistics (ACL), 2020, pp. 4514--4525. \\ \hline
 
 \textbf{Research Findings} &
-\begin{itemize}[
-    leftmargin=0.18in,
-    itemsep=0.05in,
-    topsep=0pt,
-    parsep=0pt
-]
-    \item The effect of heterogeneous source reliability in multi-source RAG is investigated. It is shown that relying only on query-document relevance can allow information from unreliable sources to influence the generated answer.
-
-    \item Reliability-Aware RAG (RA-RAG) is introduced, where source reliability is estimated by cross-checking information across multiple sources.
-
-    \item Documents are selectively retrieved from highly reliable and relevant sources, and their information is aggregated using Weighted Majority Voting (WMV).
-
-    \item Experiments show that RA-RAG improves performance over the compared baselines and remains effective as the number of information sources increases.
-\end{itemize}
-\\ \hline
+\begin{itemize}[leftmargin=0.18in,itemsep=0.05in,topsep=0pt,parsep=0pt]
+\item AIR is an iterative method designed to retrieve evidence for multi-hop questions.
+\item The retrieval process changes after each step instead of using the same query throughout.
+\item Later retrieval focuses on information that is not already covered by the available evidence.
+\item The work shows that iterative retrieval can help collect complementary evidence.
+\end{itemize} \\ \hline
 
 \textbf{Research Gap} &
-\begin{itemize}[
-    leftmargin=0.18in,
-    itemsep=0.05in,
-    topsep=0pt,
-    parsep=0pt
-]
-    \item Reliability estimation becomes more difficult when only a limited number of sources are available for cross-verification.
-
-    \item The evaluation of real-world source reliability is mainly focused on news-related claims, while specialized topics with fewer available reference sources remain challenging.
-
-    \item The reliability estimation process is performed in an offline setting and therefore requires periodic updates when the reliability of a source changes over time.
-\end{itemize}
-\\ \hline
+\begin{itemize}[leftmargin=0.18in,itemsep=0.05in,topsep=0pt,parsep=0pt]
+\item The method mainly focuses on changing the retrieval query based on previously collected information.
+\item It does not fully explore a separate ranking stage that considers relevance, missing information, and existing evidence together.
+\item There is room to investigate other ways of selecting complementary documents during iterative retrieval.
+\end{itemize} \\ \hline
 
 \textbf{Relevance with Our Work} &
-\begin{itemize}[
-    leftmargin=0.18in,
-    itemsep=0.05in,
-    topsep=0pt,
-    parsep=0pt
-]
-    \item The paper demonstrates that factors beyond query-document relevance can be incorporated into document selection, supporting the investigation of additional evidence-aware retrieval factors.
-\end{itemize}
-\\ \hline
-
+\begin{itemize}[leftmargin=0.18in,itemsep=0.05in,topsep=0pt,parsep=0pt]
+\item AIR is closely related to the idea of avoiding already-covered information.
+\item It supports the importance of retrieving complementary evidence in multi-step question answering.
+\item This provides useful background for studying a retrieval method that considers the current information state.
+\end{itemize} \\ \hline
 \end{longtable}
-
 \clearpage
 
-% ============================================================
+% ------------------------------------------------------------
 % PAPER 5
-% ============================================================
-
-\begin{center}
-\textbf{Table 2.5: Literature Survey 5}
-\end{center}
-
+% ------------------------------------------------------------
+\begin{center}\textbf{Table 2.5: Literature Survey 5}\end{center}
 \begin{longtable}{|p{1.25in}|p{5.15in}|}
-
 \hline
 
-\textbf{Name of paper} &
-\textbf{ColBERTv2: Effective and Efficient Retrieval via Lightweight Late Interaction}
-\\ \hline
+\textbf{Name of paper} & Better RAG using Relevant Information Gain \cite{pickett2024better} \\ \hline
 
-\textbf{Authors} &
-Keshav Santhanam, Omar Khattab, Jon Saad-Falcon, Christopher Potts, and Matei Zaharia
-\\ \hline
+\textbf{Authors} & Marc Pickett, Jeremy Hartman, Ayan Kumar Bhowmick, Raquib-ul Alam, and Aditya Vempaty \\ \hline
 
-\textbf{Publication Details} &
-Proceedings of the 2022 Conference of the North American Chapter of the Association for Computational Linguistics (NAACL), 2022, pp. 3715--3734.
-\\ \hline
+\textbf{Publication Details} & arXiv preprint, 2024, arXiv:2407.12101. \\ \hline
 
 \textbf{Research Findings} &
-\begin{itemize}[
-    leftmargin=0.18in,
-    itemsep=0.05in,
-    topsep=0pt,
-    parsep=0pt
-]
-    \item ColBERTv2 uses a late-interaction architecture in which query and document representations are independently encoded and compared at the token level.
-
-    \item A residual compression mechanism is introduced to reduce the storage requirements of token-level document representations.
-
-    \item Denoised supervision is used to improve the training of the retriever by reducing the effect of false negatives in the training data.
-
-    \item ColBERTv2 achieves strong retrieval effectiveness while requiring substantially less storage than the original ColBERT model.
-\end{itemize}
-\\ \hline
+\begin{itemize}[leftmargin=0.18in,itemsep=0.05in,topsep=0pt,parsep=0pt]
+\item The paper studies how relevant information gain can be used to improve document selection in RAG.
+\item It aims to reduce redundant information while keeping the retrieved information relevant.
+\item The approach gives importance to documents that provide useful information not already present in the selected evidence.
+\item The work highlights the importance of balancing relevance with the usefulness of new information.
+\end{itemize} \\ \hline
 
 \textbf{Research Gap} &
-\begin{itemize}[
-    leftmargin=0.18in,
-    itemsep=0.05in,
-    topsep=0pt,
-    parsep=0pt
-]
-    \item The method still requires storing token-level representations for documents, which can result in considerable storage requirements for large collections.
-
-    \item The retrieval architecture is designed primarily for efficient query-document matching, while the study does not investigate iterative retrieval with changing information requirements.
-\end{itemize}
-\\ \hline
+\begin{itemize}[leftmargin=0.18in,itemsep=0.05in,topsep=0pt,parsep=0pt]
+\item The main focus is on selecting useful and non-redundant information from retrieved passages.
+\item It does not mainly focus on a changing information need across several retrieval steps.
+\item The current missing information can provide an additional signal for deciding which document should be selected next.
+\end{itemize} \\ \hline
 
 \textbf{Relevance with Our Work} &
-\begin{itemize}[
-    leftmargin=0.18in,
-    itemsep=0.05in,
-    topsep=0pt,
-    parsep=0pt
-]
-    \item ColBERTv2 provides an established neural retrieval method that can be considered as a retrieval baseline for evaluating an alternative retrieval strategy.
-\end{itemize}
-\\ \hline
+\begin{itemize}[leftmargin=0.18in,itemsep=0.05in,topsep=0pt,parsep=0pt]
+\item This work provides useful background for reducing repeated or unnecessary evidence.
+\item It supports the idea that document selection should consider more than simple relevance.
+\item The concept of useful new information is indirectly related to our goal of selecting documents that help cover the current information gap.
+\end{itemize} \\ \hline
 
 \end{longtable}
-
 \clearpage
 
-
-\normalsize
-
 % ============================================================
-% CHAPTER 3
-% PROBLEM DEFINITION
+
+
+% CHAPTER 3 -- PROBLEM DEFINITION
 % ============================================================
 
 \addcontentsline{toc}{chapter}{3. PROBLEM DEFINITION}
-
 \chaptertitle{3}{PROBLEM DEFINITION}
-
 \justifying
 
-\begin{enumerate}[
-    leftmargin=0.30in,
-    itemsep=0.12in,
-    parsep=0pt
-]
+\begin{enumerate}[leftmargin=0.30in,itemsep=0.12in,parsep=0pt]
 
 \item
-In iterative RAG, conventional retrieval may repeatedly retrieve documents that are relevant to the original query but contain information that has already been obtained. This can lead to redundant retrieval and reduce the usefulness of later retrieval steps.
+In iterative Retrieval-Augmented Generation (RAG), some useful information may already be retrieved in earlier steps. However, the next retrieval may return similar information instead of focusing on what is still missing.
 
 \item
-The information required to answer a multi-hop question can change as new evidence is collected. Existing retrieval methods may not sufficiently use the current missing information when selecting documents for the next retrieval step.
+In conventional retrieval, documents are mainly selected according to their relevance to the query. This may favor information that has already been collected instead of information that is still missing.
 
 \item
-Previously retrieved evidence can contain information that is already available to the system. A retrieval mechanism is therefore needed to consider the collected evidence along with the remaining information requirement when selecting further documents.
+Previous evidence is not fully considered when selecting documents for later retrieval. As a result, redundant documents may be selected while useful and complementary documents may be missed.
 
 \item
-The effectiveness of using the current information gap and previously collected evidence for iterative retrieval needs to be experimentally investigated and compared with existing retrieval approaches.
+Therefore, there is a need for a state aware retrieval approach that considers the query, missing information, and previously collected evidence to select more useful documents for the next retrieval step.
 
 \end{enumerate}
-
 \clearpage
 
+
 % ============================================================
-% CHAPTER 4
-% OBJECTIVES
+
+
+% CHAPTER 4 -- OBJECTIVES
 % ============================================================
 
 \addcontentsline{toc}{chapter}{4. OBJECTIVES}
-
 \chaptertitle{4}{OBJECTIVES}
 
-\begin{enumerate}[
-    leftmargin=0.30in,
-    itemsep=0.12in,
-    parsep=0pt
-]
+\begin{enumerate}[leftmargin=0.30in,itemsep=0.12in,parsep=0pt]
 
 \item
-To investigate methods for reducing redundant retrieval of information that has already been obtained.
+To study existing RAG and iterative retrieval methods and identify the limitations of relevance-based retrieval in later retrieval steps.
 
 \item
-To study and incorporate the current missing information as a factor in selecting documents during iterative retrieval.
+To study how missing information can be used to guide document retrieval in an iterative setting.
 
 \item
-To investigate how previously collected evidence can be considered when selecting documents for subsequent retrieval steps.
+To study how previously collected evidence can be used to reduce redundant information and select complementary documents.
 
 \item
-To evaluate the effectiveness of the developed retrieval approach against existing retrieval methods using suitable retrieval and question-answering measures.
+To experimentally evaluate and verify the effectiveness of the proposed State Aware Retrieval for improving document retrieval in iterative RAG.
 
 \end{enumerate}
-
 \clearpage
 
+
 % ============================================================
+
+
 % ============================================================
+
 % CHAPTER 5
 % SOLUTION STRATEGY / METHODOLOGY
 % ============================================================
@@ -969,496 +756,1164 @@ To evaluate the effectiveness of the developed retrieval approach against existi
 
 \justifying
 
-The solution strategy improves iterative document retrieval by considering not only the relevance of a document to the question, but also the information that is still missing and the evidence already collected. The approach consists of four main strategies:
+The proposed methodology introduces \textbf{State Aware Retrieval} as a direct retrieval algorithm within the MIGRES framework \cite{wang2025migres}. The main reasoning, evidence extraction, and information gap update steps of MIGRES remain unchanged. Only the document retrieval step is replaced by the proposed method.
 
-\begin{enumerate}[
-    leftmargin=0.30in,
-    itemsep=0.14in,
-    parsep=0pt
-]
+At each iteration $t$, the method uses the original question $q$, the collected evidence $E_t$, the current information gaps $G_t$, and the document corpus $\mathcal{D}$. The documents are embedded using a fixed Sentence Transformer model, and the embeddings are stored for reuse. The question, gaps, and evidence are also converted into embeddings.
 
-\item \textbf{Reduce redundant retrieval:}
-Prioritize documents that provide new information rather than repeating previously retrieved content.
+Each document is compared with the question, all current gaps, and the collected evidence using semantic similarity. These similarity values are then combined to give a final state aware score for each document. The exact scoring equation will be finalized during implementation and experimentation.
 
-\item \textbf{Focus on missing information:}
-Use the current information gap to prioritize documents that address the information still required.
+The documents are ranked by their final scores, and the top-$K$ documents are selected. The value of $K$ can be set by the user for each retrieval setting.
 
-\item \textbf{Consider existing evidence:}
-Use previously collected evidence when ranking documents for subsequent retrieval.
+The methodology therefore follows five main stages:
 
-\item \textbf{Evaluate retrieval performance:}
-Compare the proposed approach with established retrieval methods using consistent datasets and evaluation settings.
+\begin{enumerate}[leftmargin=0.30in,itemsep=0.14in,parsep=0pt]
+\item \textbf{Corpus embedding:} encode the complete document corpus using the fixed Sentence Transformer model and store the document embeddings for reuse. When new documents are added, encode their embeddings and add them to the stored corpus.
 
+\item \textbf{MIGRES state preparation:} use the MIGRES framework to maintain the question, collected evidence, and current missing information during the iterative process.
+
+\item \textbf{State aware document scoring:} compare each document in the corpus with the question, each current information-gap requirement, and the evidence collected so far.
+
+\item \textbf{Top-$K$ retrieval:} use the resulting state aware score to rank the corpus documents and retrieve the highest-scoring $K$ documents.
+
+\item \textbf{Iterative state update:} pass the selected documents to MIGRES for filtering and evidence extraction, update the evidence and information-gap state, and repeat the retrieval process when more information is required.
 \end{enumerate}
+
+\clearpage
+
+% ------------------------------------------------------------
 \section{Proposed Solution}
+% ------------------------------------------------------------
 
-The proposed solution is Gap-Aware Retrieval (GAR), an iterative retrieval approach designed to improve how documents are selected when information is collected over multiple retrieval steps. At each iteration, GAR considers the original question, the information that is still missing, and the evidence that has already been collected. This allows the retrieval process to move beyond simply finding documents that are relevant to the question and instead focus on documents that can provide useful and new information.
+The main problem is that in iterative retrieval, a document may be relevant to the original question but may not provide the information that is still missing. It may also contain information that has already been collected. This can lead to repeated retrieval and less useful evidence \cite{yadav2020iterative,pickett2024better,wang2025infogain}.
 
-GAR first represents the question, missing information, documents, and collected evidence using a common semantic representation. It then uses Approximate Nearest Neighbor(\textbf{ANN}) search to identify a manageable set of candidate documents. These candidates are ranked using three signals: their relevance to the question and current information gap, the amount of missing information they can cover, and the amount of new information they provide compared with existing evidence. The highest-ranked documents are selected for the next retrieval step, after which the updated information state can be used for further retrieval. This process allows GAR to progressively improve the retrieved evidence while reducing unnecessary repetition.
+To address this problem, we propose \textbf{State Aware Retrieval}, a direct retrieval method that uses the current retrieval state when selecting documents. The current state includes the original question $q$, the information gaps $G_t$, and the evidence collected so far $E_t$. Instead of selecting documents only by their similarity to the original question, the proposed method considers all three parts of the current state.
+
+The complete document corpus $\mathcal{D}$ is used as the searchable corpus. The documents are represented using a fixed Sentence Transformer model. At each iteration, the question, current gaps, and collected evidence are also represented in the same semantic space. Each document is compared with these state elements using semantic similarity.
+
+The resulting similarity information is used by the State Aware Retrieval method to assign a final score to each document. The documents are ranked using this score, and the top-$K$ documents are selected for retrieval.
+
+The selected documents are then passed to MIGRES for its existing filtering, evidence extraction, and information gap update process. The updated state is used in the next retrieval iteration. In this way, the proposed method changes its retrieval decisions as the available information changes.
 \clearpage
+
+% ------------------------------------------------------------
 \subsection{Architecture Diagram}
-The architecture shows how GAR operates within the MIGRES framework. 
-MIGRES provides the current information gap and accumulated evidence, 
-while GAR generates candidate documents and ranks them using relevance, 
-gap coverage, and evidence novelty.
-\begin{figure}[H]
-\centering
+% ------------------------------------------------------------
 
-\begin{tikzpicture}[node distance=8mm and 7mm]
+The proposed system uses MIGRES to manage the iterative retrieval process. At each iteration, MIGRES provides the question, current evidence, and information gaps. These inputs are embedded using a Sentence Transformer and compared with the document embeddings. State Aware Retrieval combines the similarity information to score the documents and selects the top-$K$ documents. The selected documents are then passed back to MIGRES for filtering, evidence extraction, and state update.
 
-% Inputs
-\node[block] (q) {Question $q$};
-
-% Embedding and candidate generation
-\node[important,below=of q] (emb) {Sentence Transformer\\Embedding};
-\node[block,left=of emb] (g) {Current Gap $G_t$};
-\node[block,right=of emb] (d) {Corpus $D$};
-\node[important,below=of emb] (ann) {ANN Candidate Search\\$K_0$};
-\node[block,below=of ann] (cand) {Candidate Set $\mathcal{C}_t$};
-\node[block,left=of cand] (e) {Evidence $E_t$};
-
-% GAR components
-\node[block,right=of cand] (r) {Relevance $R$};
-\node[block,below=of r] (c) {Coverage $C$};
-\node[block,below=of c] (n) {Novelty $N$};
-
-% Final score
-\node[important,right=of c] (score)
-    {GAR Score\\$\alpha R+\beta C+\gamma N$};
-
-% Output and MIGRES
-\node[block,below=of score] (top) {Top-$k$ Documents};
-\node[block,below=of top] (mig) {MIGRES Filtering / Extraction};
-\node[block,left=of mig] (next) {Updated $E_{t+1},G_{t+1}$};
-
-% Input arrows
-\draw[arrow] (q) -- (emb);
-\draw[arrow] (g) -- (emb);
-\draw[arrow] (d) -- (emb);
-
-% Embedding -> ANN -> candidates
-\draw[arrow] (emb) -- (ann);
-\draw[arrow] (ann) -- (cand);
-
-% Candidate -> each GAR component
-\draw[arrow] (cand) -- (r);
-\draw[arrow] (cand) |- (c);
-\draw[arrow] (cand) |- (n);
-
-% Evidence affects novelty
-\draw[arrow] (e) |- (n);
-
-% Components -> final score
-\draw[arrow] (r) -- (score);
-\draw[arrow] (c) -- (score);
-\draw[arrow] (n) -- (score);
-
-% Final retrieval -> MIGRES
-\draw[arrow] (score) -- (top);
-\draw[arrow] (top) -- (mig);
-
-% MIGRES updates the state
-\draw[arrow] (mig) -- (next);
-
-% Feedback loop for next iteration
-\draw[arrow] (next.west) -- ++(-7,0) |- (g.west);
-\draw[arrow] (next.west) -- ++(-7,0) |- (e.west);
-
-\end{tikzpicture}
-
-\caption{GAR methodology within the MIGRES framework.}
-\label{fig:gar-architecture}
-
-\end{figure}
-\clearpage
-
-\subsection{Flow Diagram}
-The flow diagram presents the iterative execution of the proposed method. 
-After each retrieval and evidence-extraction step, MIGRES updates the 
-information state. GAR then performs the next retrieval until the stopping 
-condition is satisfied.
 \begin{figure}[H]
 \centering
 \begin{tikzpicture}[
-    node distance=0.34in,
-    flowbox/.style={draw, rounded corners, align=center, minimum width=2.45in, minimum height=0.48in, font=\small},
-    decision/.style={draw, rounded corners, align=center, minimum width=2.45in, minimum height=0.55in, font=\small},
-    arrow/.style={->, >=stealth, line width=0.7pt}
+    node distance=8mm and 18mm,
+    box/.style={
+        rectangle,
+        draw,
+        rounded corners,
+        align=center,
+        minimum width=31mm,
+        minimum height=9mm,
+        font=\small
+    },
+    wide/.style={
+        rectangle,
+        draw,
+        rounded corners,
+        align=center,
+        minimum width=45mm,
+        minimum height=10mm,
+        font=\small
+    },
+    simbox/.style={
+        rectangle,
+        draw,
+        rounded corners,
+        align=center,
+        minimum width=38mm,
+        minimum height=9mm,
+        font=\small
+    },
+    arrow/.style={
+        ->,
+        >=stealth,
+        thick
+    },
+    line/.style={
+        thick
+    }
 ]
-\node[flowbox] (question) {Benchmark Question $q$};
-\node[flowbox, below=of question] (state) {MIGRES: Initialize / Update $E_t,G_t$};
-\node[flowbox, below=of state] (repr) {Represent $q$, $G_t$, $E_t$, and $D$};
-\node[flowbox, below=of repr] (candidate) {ANN Candidate Generation $C_t$};
-\node[flowbox, below=of candidate] (score) {Compute $R$, $C$, and $N$};
-\node[flowbox, below=of score] (rank) {GAR Ranking and Top-$k$ Selection};
-\node[flowbox, below=of rank] (extract) {MIGRES Filtering and Evidence Extraction};
-\node[flowbox, below=of extract] (update) {Update $E_{t+1}$ and $G_{t+1}$};
-\node[decision, below=0.42in of update] (stop) {Stopping condition reached?};
-\node[flowbox, below=0.48in of stop] (answer) {Generate Final Answer};
+
+% ------------------------------------------------------------
+% Top level
+% ------------------------------------------------------------
+
+\node[box] (q)
+    {Original Question\\$q$};
+
+\node[box,below=of q] (state)
+    {MIGRES State\\$E_t,\;G_t$};
+
+\node[wide,right=28mm of state] (docs)
+    {Complete Document Corpus\\$\mathcal{D}$};
+
+\node[wide,below=of docs] (docembed)
+    {Precomputed Document Embeddings\\Sentence Transformer};
+
+\node[wide,below=of state] (stateembed)
+    {Sentence Transformer\\Embed $q$, $G_t$, and $E_t$};
+
+% ------------------------------------------------------------
+% Similarity layer
+% ------------------------------------------------------------
+
+\node[simbox,below=16mm of stateembed] (rel)
+    {Question Relevance};
+
+\node[simbox,below=7mm of rel] (gap)
+    {Gap Similarity};
+
+\node[simbox,below=7mm of gap] (nov)
+    {Evidence Similarity};
+
+% ------------------------------------------------------------
+% Scoring and retrieval
+% ------------------------------------------------------------
+
+\node[wide,below=10mm of nov] (score)
+    {State Aware Retrieval\\Final Document Score};
+
+\node[wide,below=of score] (topk)
+    {Top-$K$ Retrieval};
+
+\node[wide,below=of topk] (migres)
+    {MIGRES Filtering and Evidence Extraction};
+
+\node[box,below=of migres] (update)
+    {Updated State\\$E_{t+1},\;G_{t+1}$};
+
+% ------------------------------------------------------------
+% Main flow
+% ------------------------------------------------------------
+
+\draw[arrow] (q) -- (state);
+
+\draw[arrow] (state) -- (stateembed);
+
+% Question also goes to the embedding stage
+\draw[arrow]
+    (q.west)
+    -- ++(-12mm,0)
+    |- (stateembed.west);
+
+% Document corpus
+\draw[arrow] (docs) -- (docembed);
+
+% ------------------------------------------------------------
+% State embedding bus
+% ------------------------------------------------------------
+
+\coordinate (sbusTop) at ([xshift=-14mm]rel.west);
+\coordinate (sbusBottom) at ([xshift=-14mm]nov.west);
+
+\draw[line]
+    (stateembed.south)
+    -| (sbusTop)
+    -- (sbusBottom);
+
+\draw[arrow]
+    (sbusTop)
+    -- (rel.west);
+
+\draw[arrow]
+    (sbusTop |- gap.west)
+    -- (gap.west);
+
+\draw[arrow]
+    (sbusTop |- nov.west)
+    -- (nov.west);
+
+% ------------------------------------------------------------
+% Document embedding bus
+% ------------------------------------------------------------
+
+\coordinate (dbusTop) at ([xshift=14mm]rel.east);
+\coordinate (dbusBottom) at ([xshift=14mm]nov.east);
+
+\draw[line]
+    (docembed.south)
+    -| (dbusTop)
+    -- (dbusBottom);
+
+\draw[arrow]
+    (dbusTop)
+    -- (rel.east);
+
+\draw[arrow]
+    (dbusTop |- gap.east)
+    -- (gap.east);
+
+\draw[arrow]
+    (dbusTop |- nov.east)
+    -- (nov.east);
+
+% ------------------------------------------------------------
+% Similarity outputs to score
+% ------------------------------------------------------------
+
+\coordinate (scorebus) at ([xshift=24mm]nov.east);
+
+\draw[line]
+    (rel.east)
+    -- (scorebus |- rel.east);
+
+\draw[line]
+    (gap.east)
+    -- (scorebus |- gap.east);
+
+\draw[line]
+    (nov.east)
+    -- (scorebus |- nov.east);
+
+\draw[line]
+    (scorebus |- rel.east)
+    -- (scorebus |- score.east);
+
+\draw[arrow]
+    (scorebus |- score.east)
+    -- (score.east);
+
+% ------------------------------------------------------------
+% Retrieval and feedback
+% ------------------------------------------------------------
+
+\draw[arrow] (score) -- (topk);
+
+\draw[arrow] (topk) -- (migres);
+
+\draw[arrow] (migres) -- (update);
+
+\draw[arrow]
+    (update.west)
+    -- ++(-62mm,0)
+    |- (state.west);
+
+\end{tikzpicture}
+
+\caption{Architecture of State Aware Retrieval}
+\label{fig:gar-architecture}
+\end{figure}
+
+\clearpage
+
+% ------------------------------------------------------------
+\subsection{Operational Flow}
+% ------------------------------------------------------------
+
+The operational flow describes how the proposed system performs retrieval at each iteration. MIGRES provides the current question, evidence, and information gaps. These inputs are embedded and compared with the document corpus. State Aware Retrieval then scores and selects the top-$K$ documents, which are passed to MIGRES for filtering, evidence extraction, and state update. The updated state is used in the next iteration.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=0.30in,
+    flowbox/.style={draw,rounded corners,align=center,minimum width=3.05in,minimum height=0.48in,font=\small},
+    decision/.style={draw,rounded corners,align=center,minimum width=3.05in,minimum height=0.55in,font=\small},
+    arrow/.style={->,>=stealth,line width=0.7pt}
+]
+\node[flowbox] (question) {Question $q$};
+\node[flowbox,below=of question] (state) {MIGRES: Current State $E_t,G_t$};
+\node[flowbox,below=of state] (embed) {Sentence Transformer Embeddings};
+\node[flowbox,below=of embed] (compare) {Compare Every Document with $q$, $G_t$, and $E_t$};
+\node[flowbox,below=of compare] (score) {State Aware Retrieval: Final Document Scores};
+\node[flowbox,below=of score] (topk) {Top-$K$ Retrieval};
+\node[flowbox,below=of topk] (extract) {MIGRES: Filtering and Evidence Extraction};
+\node[flowbox,below=of extract] (update) {Update $E_{t+1}$ and $G_{t+1}$};
+\node[decision,below=0.32in of update] (stop) {Stopping condition reached?};
+\node[flowbox,below=0.38in of stop] (answer) {Final Answer Generation};
 
 \draw[arrow] (question) -- (state);
-\draw[arrow] (state) -- (repr);
-\draw[arrow] (repr) -- (candidate);
-\draw[arrow] (candidate) -- (score);
-\draw[arrow] (score) -- (rank);
-\draw[arrow] (rank) -- (extract);
+\draw[arrow] (state) -- (embed);
+\draw[arrow] (embed) -- (compare);
+\draw[arrow] (compare) -- (score);
+\draw[arrow] (score) -- (topk);
+\draw[arrow] (topk) -- (extract);
 \draw[arrow] (extract) -- (update);
 \draw[arrow] (update) -- (stop);
 \draw[arrow] (stop) -- node[right]{Yes} (answer);
-\draw[arrow] (stop.west) -- ++(-1.25,0) node[above,midway]{No} |- (candidate.west);
+\draw[arrow] (stop.west) -- ++(-22mm,0) node[above,midway]{No} |- (state.west);
 \end{tikzpicture}
-\caption{Operational flow of the proposed GAR-based iterative retrieval solution.}
+\caption{Operational Flow of State Aware Retrieval}
 \label{fig:gar-flow}
 \end{figure}
+
 \clearpage
+
+% ------------------------------------------------------------
 \section{Mathematical Formulation}
 
-At each retrieval iteration $t$, GAR receives the question $q$, the previously collected evidence $E_t$, the current missing-information requirements $G_t=\{g_1,\ldots,g_m\}$, and the document corpus $D$:
+At iteration $t$, the retrieval state contains the question $q$, the collected evidence $E_t$, the current information gap $G_t$, and the complete corpus $\mathcal{D}$. The retrieval method uses this state to assign one final score to every document in the corpus.
 
+\subsection{Notation}
+
+Let
 \[
-(q,E_t,G_t,D).
+E_t=\{e_1,e_2,\ldots,e_n\}
+\]
+be the evidence collected before iteration $t$, and let
+\[
+G_t=\{g_1,g_2,\ldots,g_m\}
+\]
+be the information gaps identified by MIGRES. The searchable document corpus is:
+\[
+\mathcal{D}=\{d_1,d_2,\ldots,d_N\}.
 \]
 
-Here, $q$ represents the original question, $E_t$ represents the evidence collected so far, $G_t$ represents the information that is still missing, and $D$ is the searchable document collection. The information gap and evidence are provided by the surrounding iterative retrieval process.
-
-GAR uses a fixed sentence-embedding function $\phi(x)$ to represent questions, gaps, documents, and evidence as vectors. The primary configuration uses \textbf{sentence-transformers/multi-qa-mpnet-base-cos-v1} \cite{reimers2019sentence,st2020mpnet}. The similarity between two text items is measured using cosine similarity:
-
+The current retrieval state is represented as:
 \[
-s(x,y)=
-\frac{1}{2}
-\left(
-1+
-\frac{\phi(x)^T\phi(y)}
-{\|\phi(x)\|_2\|\phi(y)\|_2}
-\right).
+\boxed{(q,E_t,G_t,\mathcal{D})}.
 \]
 
-This normalizes the similarity score to the range $[0,1]$.
+\subsection{Corpus Embedding}
 
-Before ranking, GAR creates a candidate set using approximate nearest-neighbor (ANN) search:
-
+Before retrieval begins, all documents in the corpus are encoded using the selected Sentence Transformer model. The resulting document embeddings are stored and reused during retrieval:
 \[
-C_t =
-\operatorname{ANN}_{K_0}(q,D)
-\cup
-\bigcup_{i=1}^{m}
-\operatorname{ANN}_{K_0}(g_i,D),
+\phi(d) \leftarrow \text{Sentence Transformer}(d).
 \]
 
-where $K_0$ is the number of candidate documents retrieved for scoring. Duplicate documents are removed from $C_t$.
+At the end of each retrieval iteration, the system checks for new or updated documents in the corpus. New documents are encoded using the same model and added to the stored embeddings. Updated documents are re-encoded and replaced with their new embeddings. This keeps the searchable embedding collection up to date without re-embedding unchanged documents.
 
-GAR then evaluates each candidate using three scores. First, gap relevance measures how relevant a document is to both the question and the current information gap. With equal gap weights, it is defined as:
+\subsection{State Embedding}
 
+At each iteration, the question, current gaps, and collected evidence are encoded using the same Sentence Transformer:
 \[
-R(d,q,G_t)
-=
-\lambda s(d,q)
-+
-(1-\lambda)
-\frac{1}{m}
-\sum_{i=1}^{m}s(d,g_i),
+\phi(q),\qquad \phi(g_i),\qquad \phi(e_j).
 \]
 
-where $0\leq\lambda\leq1$ controls the balance between the original question and the information gap.
+This places the question, gaps, evidence, and documents in the same semantic space.
 
-Second, gap coverage measures how much of the missing information is covered by a document. Using normalized content tokens $\tau(\cdot)$:
+\subsection{Sentence Similarity}
 
+The semantic similarity between two text items $x$ and $y$ is measured using cosine similarity:
 \[
-C(d,G_t)
-=
-\frac{1}{m}
-\sum_{i=1}^{m}
-\frac{|\tau(d)\cap\tau(g_i)|}
-{|\tau(g_i)|}.
+\operatorname{cos}(x,y)=
+\frac{\phi(x)^T\phi(y)}{\|\phi(x)\|_2\|\phi(y)\|_2}.
 \]
 
-This score lies between $0$ and $1$. Empty gap requirements are removed before this calculation.
-
-Third, evidence novelty measures how different a candidate document is from the evidence already collected:
-
+For the proposed scoring method, the value can be normalized to the range $[0,1]$ using:
 \[
-N(d,E_t)
-=
-1-\max_{e\in E_t}s(d,e).
+\boxed{
+ s(x,y)=\frac{1+\operatorname{cos}(x,y)}{2}
+}
+\tag{1}
 \]
 
-A document that is highly similar to existing evidence receives a lower novelty score. At the first iteration, where $E_0=\emptyset$, novelty is set to $1$.
+A higher value means that the two representations are more semantically similar.
 
-The three scores are combined into the final GAR score:
+\subsection{Question Relevance}
 
+Question relevance measures how closely a document matches the original question:
 \[
-S(d\mid q,E_t,G_t)
-=
-\alpha R(d,q,G_t)
-+
-\beta C(d,G_t)
-+
-\gamma N(d,E_t),
+\boxed{R(d,q)=s(d,q)}
+\tag{2}
 \]
 
-where
+A higher value means that the document is more related to the main question.
 
+\subsection{Gap Coverage}
+
+The document is compared with every current information gap:
 \[
+\boxed{c(d,g_i)=s(d,g_i)}
+\tag{3}
+\]
+
+The gap coverage score combines the similarity values for the current gaps:
+\[
+\boxed{
+C(d,G_t)=\frac{1}{m}\sum_{i=1}^{m}c(d,g_i)
+}
+\tag{4}
+\]
+
+A higher value means that the document is more closely related to the information that is currently missing. At the first iteration, $G_0=\emptyset$ and the gap-coverage value is defined as $C(d,G_0)=0$. If no valid gap remains after a completed iteration, MIGRES can stop the retrieval process.
+
+\subsection{Evidence Novelty}
+
+The document is compared with all previously collected evidence. The novelty score is based on the document's strongest similarity with existing evidence:
+\[
+\boxed{
+N(d,E_t)=1-\max_{e_j\in E_t}s(d,e_j)
+}
+\tag{5}
+\]
+
+A document that is very similar to previous evidence receives a lower novelty value. A document that is less similar to the existing evidence receives a higher novelty value. At the first iteration, when no evidence has been collected:
+\[
+\boxed{N(d,E_0)=1.}
+\tag{6}
+\]
+
+\subsection{State Aware Document Score}
+
+The three signals are combined to give one final score to every document:
+\[
+\boxed{
+S_t(d\mid q,E_t,G_t)=
+\alpha R(d,q)+\beta C(d,G_t)+\gamma N(d,E_t)
+}
+\tag{7}
+\]
+
+where:
+\[
+\boxed{
 \alpha,\beta,\gamma\geq0,
 \qquad
 \alpha+\beta+\gamma=1.
+}
+\tag{8}
 \]
 
-The weights determine the importance of relevance, coverage, and novelty, respectively. Since all three component scores are normalized, the final GAR score also lies between $0$ and $1$.
+Here, $\alpha$ controls the importance of question relevance, $\beta$ controls the importance of current gap coverage, and $\gamma$ controls the importance of new information compared with previous evidence.
 
-Finally, GAR ranks the candidate documents according to their scores and returns the top-$k$ documents:
+\subsection{Top-$K$ Retrieval}
 
+After the final score is calculated for the documents in the corpus, they are ranked from highest to lowest score. The final retrieval result is:
 \[
-T_t=
-\operatorname{TopK}_{d\in C_t}
-S(d\mid q,E_t,G_t).
+\boxed{
+T_t=\operatorname{TopK}_{d\in\mathcal{D}} S_t(d\mid q,E_t,G_t)
+}
+\tag{9}
 \]
 
-The selected documents are then used in the next iteration, where the evidence and missing-information state may be updated before GAR performs the next retrieval.
+The parameter $K$ defines how many documents are returned. No fixed similarity threshold is used before Top-$K$ selection.
+
+\subsection{Iterative State Update}
+
+The selected documents $T_t$ are passed to MIGRES for filtering and information extraction. The useful extracted information is added to the evidence state, and MIGRES identifies the remaining gap for the next iteration:
+\[
+\boxed{
+(q,E_t,G_t,\mathcal{D})
+\rightarrow
+T_t
+\rightarrow
+(E_{t+1},G_{t+1})
+\rightarrow
+T_{t+1}
+}
+\tag{10}
+\]
+
+The process continues until MIGRES determines that enough information has been collected or the configured iteration limit is reached.
 \clearpage
+
+% ------------------------------------------------------------
+\section{State Aware Retrieval Configurations}
+
+The following settings define the main configuration used for the proposed State Aware Retrieval system. They specify the models, similarity method, retrieval space, document embedding setup, and other tools used in the project.
+
+\begin{table}[H]
+\centering
+\caption{State Aware Retrieval Settings}
+\label{tab:sar-settings-initial}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{|p{1.75in}|p{1.35in}|p{3.0in}|}
+\hline
+\textbf{Setting} & \textbf{Value} & \textbf{Purpose} \\ \hline
+Embedding model & multi-qa-mpnet-base-cos-v1 & Creates common semantic representations for questions, documents, gaps, and evidence. \\ \hline
+Similarity function & Cosine similarity & Measures semantic similarity between embedding vectors. \\ \hline
+Retrieval space & Complete document corpus $\mathcal{D}$ & Every document is considered during State Aware Retrieval. \\ \hline
+Document embeddings & Precomputed and maintained & Stored once and updated when new or changed documents appear. \\ \hline
+Framework & MIGRES & Provides the iterative evidence and information-gap state. \\ \hline
+LLM API & Gemini 3.8 Flash & Used for the language-model parts of the project through the Gemini API. \\ \hline
+\end{tabular}
+\end{table}
+
+The State Aware Retrieval method uses a small number of hyperparameters and retrieval settings. The hyperparameters control the scoring process, while the retrieval settings define how the system operates during each experiment.The scoring weights will be selected using the validation data and fixed before the final test evaluation. The weights will follow the normalization constraint defined in the final scoring formulation.
+
+\begin{table}[H]
+\centering
+\caption{State Aware Retrieval hyperparameters}
+\label{tab:sar-hyperparameters-initial}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{|p{1.45in}|p{1.75in}|p{2.9in}|}
+\hline
+\textbf{Hyperparameter} & \textbf{Role} & \textbf{Selection} \\ \hline
+$\alpha$ & Question relevance weight & Selected using validation data. \\ \hline
+$\beta$ & Gap coverage weight & Selected using validation data. \\ \hline
+$\gamma$ & Evidence novelty weight & Selected using validation data. \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{State Aware Retrieval settings}
+\label{tab:sar-settings}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{|p{1.45in}|p{1.75in}|p{2.9in}|}
+\hline
+\textbf{Setting} & \textbf{Role} & \textbf{Selection} \\ \hline
+$K$ & Number of documents retrieved & Configurable for each experiment. \\ \hline
+$T_{\max}$ & Maximum number of retrieval cycles & Fixed for each experiment and used with the MIGRES stopping condition. \\ \hline
+\end{tabular}
+\end{table}
+\clearpage
+% ------------------------------------------------------------
 \section{Datasets and Model}
+% ------------------------------------------------------------
 
 \subsection{Datasets}
 
-The evaluation uses six question-answering datasets that involve multi-hop reasoning, information gathering, or retrieval from supporting evidence. These datasets provide different types of information-seeking tasks and allow the proposed retrieval approach to be evaluated across varied retrieval and reasoning requirements.
-
-The datasets used in this study are:
+The evaluation uses six question-answering datasets used in the MIGRES setting. They cover multi-hop reasoning, information gathering, and evidence-based question answering:
 
 \begin{itemize}
-    \item \textbf{WikiHop:} A multi-document question-answering dataset that requires information to be combined across multiple documents \cite{welbl2018wikihop}.
-
-    \item \textbf{HotpotQA:} A multi-hop question-answering dataset with supporting facts. The FullWiki setting is used to evaluate retrieval from a larger Wikipedia corpus \cite{yang2018hotpotqa}.
-
-    \item \textbf{MuSiQue:} A multi-hop question-answering dataset designed for compositional reasoning, with questions requiring two to four reasoning hops \cite{trivedi2022musique}.
-
-    \item \textbf{Natural Questions:} A question-answering dataset based on real search queries, with annotations derived from Wikipedia \cite{kwiatkowski2019natural}.
-
-    \item \textbf{TriviaQA:} A question-answering dataset containing questions paired with independently collected evidence documents \cite{joshi2017triviaqa}.
-
-    \item \textbf{StrategyQA:} A question-answering dataset that requires implicit reasoning and uses supporting Wikipedia evidence \cite{geva2021strategyqa}.
+    \item \textbf{WikiHop:} A multi-document question-answering dataset requiring information from multiple documents \cite{welbl2018wikihop}.
+    \item \textbf{HotpotQA:} A multi-hop question-answering dataset with supporting facts \cite{yang2018hotpotqa}.
+    \item \textbf{MuSiQue:} A multi-hop dataset designed for compositional reasoning \cite{trivedi2022musique}.
+    \item \textbf{Natural Questions:} A question-answering dataset based on real search queries \cite{kwiatkowski2019natural}.
+    \item \textbf{TriviaQA:} A question-answering dataset with independently collected evidence documents \cite{joshi2017triviaqa}.
+    \item \textbf{StrategyQA:} A question-answering dataset requiring implicit reasoning over supporting information \cite{geva2021strategyqa}.
 \end{itemize}
 
-Where official splits are available, the training, validation, and test sets are kept separate. The validation set is used for GAR hyperparameter selection, while the test set is reserved for final evaluation.
+Official training, development, and test splits are kept separate wherever available. Validation data are used for system development and parameter selection, while the final test data are kept for the final comparison.
 
 \subsection{Model}
 
-GAR uses a Sentence Transformer model to convert questions, information gaps, documents, and collected evidence into numerical vector representations. Sentence Transformers are designed to generate embeddings that capture the semantic meaning of text, allowing text items to be compared based on semantic similarity rather than only exact word matching.
+The proposed State Aware Retrieval method uses the
+\texttt{sentence-transformers/multi-qa-mpnet-base-cos-v1} model.
+It is a Sentence Transformer model designed for semantic search. It
+converts text into 768-dimensional dense vectors. The same model is
+used for questions, documents, information gaps, and evidence
+\cite{reimers2019sentence,st2020mpnet}.
 
-The primary model used in this study is \texttt{multi-qa-mpnet-base-cos-v1} from Sentence Transformers. It produces 768-dimensional dense embeddings and is designed for semantic search \cite{reimers2019sentence,st2020mpnet}. The same model is used for questions, gap requirements, documents, and evidence to maintain a consistent representation throughout the retrieval process.
+The document corpus is embedded before retrieval and the embeddings are
+stored for reuse. At each iteration, the current question, gaps, and
+evidence are embedded using the same model. The resulting vectors are
+then compared using cosine similarity.
 
-\section{Baseline Comparison}
-
-The proposed method is compared with established retrieval approaches to evaluate its effectiveness. The main retrieval systems are summarized in Table~\ref{tab:baseline-comparison}.
-
-\begin{table}[H]
+\begin{figure}[H]
 \centering
-\caption{Retrieval baseline comparison}
-\label{tab:baseline-comparison}
-\renewcommand{\arraystretch}{1.25}
-\begin{tabular}{|p{1.55in}|p{1.45in}|p{3.05in}|}
-\hline
-\textbf{System} & \textbf{Retrieval type} & \textbf{Role} \\ \hline
-MIGRES+BM25 & Sparse lexical & Main baseline \cite{robertson2009bm25} \\ \hline
-MIGRES+DPR & Dense bi-encoder & Supervised dense baseline \cite{karpukhin2020dpr} \\ \hline
-MIGRES+Contriever & Unsupervised dense & Contrastive-learning dense baseline \cite{izacard2022contriever} \\ \hline
-MIGRES+ColBERTv2 & Late interaction & Multi-vector retrieval baseline \cite{santhanam2022colbertv2} \\ \hline
-MIGRES+SPLADE & Neural sparse & Neural sparse baseline \cite{formal2021splade} \\ \hline
-MIGRES+GAR & Gap-aware & Proposed retrieval method \\ \hline
-\end{tabular}
-\end{table}
+\begin{tikzpicture}[
+    node distance=9mm and 12mm,
+    box/.style={
+        rectangle,
+        draw,
+        rounded corners,
+        align=center,
+        minimum width=38mm,
+        minimum height=10mm,
+        font=\small
+    },
+    model/.style={
+        rectangle,
+        draw,
+        rounded corners,
+        align=center,
+        minimum width=48mm,
+        minimum height=10mm,
+        font=\small
+    },
+    arrow/.style={
+        ->,
+        >=stealth,
+        thick
+    }
+]
 
-For a fair comparison, the same dataset splits, questions, document corpus, retrieval depth $k$, and other system settings are used for all methods wherever possible. Only the retrieval method is changed. The baseline methods are used with their standard implementations and settings.
+\node[box] (docs)
+    {Document Corpus\\$\mathcal{D}$};
 
-\subsection{Research Questions}
+\node[model,right=of docs] (docmodel)
+    {Sentence Transformer\\
+    \texttt{multi-qa-mpnet-base-cos-v1}};
 
-The experimental design addresses the following research questions:
+\node[box,right=of docmodel] (docembed)
+    {Stored Document\\Embeddings};
 
-\textbf{RQ1.} Does GAR improve retrieval quality over the MIGRES BM25 baseline?
+\node[box,below=18mm of docs] (state)
+    {Question, Gaps\\and Evidence};
 
-\textbf{RQ2.} Does GAR outperform strong dense, sparse, and late-interaction retrieval methods?
+\node[model,right=of state] (statemodel)
+    {Sentence Transformer\\
+    \texttt{multi-qa-mpnet-base-cos-v1}};
 
-\textbf{RQ3.} Does replacing BM25 with GAR improve downstream MIGRES answer quality?
+\node[box,right=of statemodel] (stateembed)
+    {Current State\\Embeddings};
 
-\textbf{RQ4.} Which GAR component contributes most: relevance, coverage, or novelty?
+\node[model,below=18mm of stateembed] (similarity)
+    {Cosine Similarity};
 
-\textbf{RQ5.} Does GAR generalize across the six datasets?
+\node[model,below=of similarity] (score)
+    {State Aware Retrieval\\
+    Document Score};
 
-\textbf{RQ6.} What is the computational cost of GAR compared with the baselines?
+\draw[arrow] (docs) -- (docmodel);
+\draw[arrow] (docmodel) -- (docembed);
 
-\textbf{RQ7.} Does GAR improve retrieval without adding unnecessary LLM calls?
+\draw[arrow] (state) -- (statemodel);
+\draw[arrow] (statemodel) -- (stateembed);
 
-\textbf{RQ8.} How does GAR's retrieval effectiveness and evidence selection behavior change across successive MIGRES retrieval iterations?
+% Document embeddings to cosine similarity
+\draw[arrow]
+    (docembed.south)
+    -- ++(0,-12mm)
+    -| (similarity.east);
 
-\textbf{RQ9.} What are the main failure modes of GAR, and at which stage of the retrieval pipeline do these failures occur?
+% Current state embeddings to cosine similarity
+\draw[arrow]
+    (stateembed.south)
+    -- (similarity.north);
 
-RQ8 is addressed through iteration-wise retrieval analysis, while RQ9 is addressed through failure-case and candidate-pool analysis. The additional analyses do not modify the GAR scoring function or introduce new trainable components.
+\draw[arrow] (similarity) -- (score);
 
+\end{tikzpicture}
+
+\caption{Sentence Transformer Based Retrieval Representation}
+\label{fig:sar-model}
+\end{figure}
+\clearpage
+
+% ------------------------------------------------------------
 \section{Experimental Design}
 
-The experiments are conducted in four main stages. First, the GAR hyperparameters are selected using the validation set. The selected configuration is then fixed and used for the main comparison with existing retrieval methods. Ablation experiments are then performed to study the contribution of the individual GAR components. Finally, the effect of the ANN candidate-pool size is analyzed.
+The experiments are designed to evaluate the proposed State Aware
+Retrieval method from different perspectives. The study includes
+retrieval performance evaluation, ablation analysis, parameter and
+hyperparameter selection, comparison with existing information
+retrieval methods, downstream RAG evaluation, and computational cost
+analysis. The experiments are first conducted using the validation
+data, and the selected configuration is then fixed for the final test
+evaluation.
+% ------------------------------------------------------------
+\section{Experimental Design}
 
-\subsection{Hyperparameter Selection}
+The experiments are designed to evaluate State Aware Retrieval from
+different perspectives. The study includes parameter and hyperparameter
+selection, comparison with existing retrieval methods, ablation testing,
+retrieval evaluation, iterative state analysis, downstream RAG and
+robustness evaluation, and computational cost analysis.
 
-GAR uses five hyperparameters: $\alpha$, $\beta$, $\gamma$, $\lambda$, and $K_0$. The roles of these parameters are shown in Table~\ref{tab:gar-hyperparameters}.
+The validation data are used for system selection and parameter tuning.
+The selected configuration is then fixed before the final test
+evaluation.
+
+% ------------------------------------------------------------
+\subsection{Parameter and Hyperparameter Selection}
+
+The proposed State Aware Retrieval method uses both hyperparameters and
+retrieval parameters. Hyperparameters control the contribution of the
+state signals to the final document score, while retrieval parameters
+control the retrieval process.
 
 \begin{table}[H]
 \centering
-\caption{GAR hyperparameters}
-\label{tab:gar-hyperparameters}
-\renewcommand{\arraystretch}{1.25}
-\begin{tabular}{|p{1.05in}|p{1.55in}|p{3.65in}|}
+\caption{State Aware Retrieval Hyperparameters}
+\label{tab:sar-hyperparameters}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{|p{1.45in}|p{1.75in}|p{2.9in}|}
 \hline
-\textbf{Parameter} & \textbf{Role} & \textbf{Description} \\ \hline
-$\alpha$ & Relevance weight & Controls the importance of relevance. \\ \hline
-$\beta$ & Coverage weight & Controls the importance of coverage. \\ \hline
-$\gamma$ & Novelty weight & Controls the importance of new information. \\ \hline
-$\lambda$ & Question weight & Controls the importance of the original question. \\ \hline
-$K_0$ & Candidate-pool size & Controls the number of candidate documents. \\ \hline
+\textbf{Hyperparameter} & \textbf{Role} & \textbf{Selection} \\ \hline
+$\alpha$ & Question relevance weight &
+Selected using Bayesian optimization on validation data. \\ \hline
+$\beta$ & Gap coverage weight &
+Selected using Bayesian optimization on validation data. \\ \hline
+$\gamma$ & Evidence novelty weight &
+Selected using Bayesian optimization on validation data. \\ \hline
 \end{tabular}
 \end{table}
 
-The validation set is used to select the GAR configuration:
+\begin{table}[H]
+\centering
+\caption{State Aware Retrieval Parameters}
+\label{tab:sar-parameters}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{|p{1.45in}|p{1.75in}|p{2.9in}|}
+\hline
+\textbf{Parameter} & \textbf{Role} & \textbf{Selection} \\ \hline
+$K$ & Number of documents retrieved at each iteration &
+Selected from predefined values using validation data. \\ \hline
+$T_{\max}$ & Maximum number of retrieval iterations &
+Fixed for the experiment and used with the MIGRES stopping condition. \\ \hline
+\end{tabular}
+\end{table}
+
+The hyperparameters $\alpha$, $\beta$, and $\gamma$ are selected using
+Bayesian optimization on the validation data and fixed before the final
+test evaluation \cite{snoek2012practical}.
+
+Two scoring settings are also compared. In the static setting, the
+same weights are used at all retrieval iterations:
 
 \[
-\theta_{\mathrm{GAR}}
-=
-\{\alpha,\beta,\gamma,\lambda,K_0\}.
+\alpha_t=\alpha,\qquad
+\beta_t=\beta,\qquad
+\gamma_t=\gamma
 \]
 
-Bayesian optimization is used to search for the configuration that gives the best validation performance \cite{snoek2012practical}. Recall@k is used as the primary validation metric. The search includes different values of $\alpha$, $\beta$, $\gamma$, and $\lambda$, while $K_0$ is selected from the predefined values:
+In the dynamic setting, the weights may change according to the current
+retrieval state:
 
 \[
-K_0\in\{50,100,200,500\}.
+\alpha_t,\qquad
+\beta_t,\qquad
+\gamma_t
 \]
 
-The best configuration is selected from the validation results and then fixed for the remaining experiments. The test set is not used to change the selected hyperparameters.
+Both settings use the same corpus, embedding model, retrieval depth,
+and evaluation protocol.
 
-\subsection{Main Comparison}
+% ------------------------------------------------------------
+\subsection{Baseline Comparison}
 
-After the GAR configuration is fixed, the main experiment compares GAR with established retrieval methods. The methods evaluated are BM25, DPR, Contriever, ColBERTv2, and SPLADE.
+The proposed State Aware Retrieval method is compared with established
+information retrieval methods. All methods are evaluated on the same
+document corpus and use the same evaluation questions and final
+retrieval depth where applicable.
 
-All methods use the same datasets, questions, document corpus, and final retrieval depth $k$ wherever possible. This allows the comparison to focus on the difference between the retrieval methods.
+\begin{table}[H]
+\centering
+\caption{Information Retrieval Baseline Comparison}
+\label{tab:baseline-comparison}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{|p{1.55in}|p{1.40in}|p{3.10in}|}
+\hline
+\textbf{System} & \textbf{Type} & \textbf{Main Retrieval Basis} \\ \hline
+BM25 & Sparse lexical &
+Term frequency, inverse document frequency, and document length
+\cite{robertson2009bm25} \\ \hline
 
-The main evaluation measures retrieval performance and downstream answer quality.
+DPR & Dense &
+Question and passage embeddings learned with a dual encoder
+\cite{karpukhin2020dpr} \\ \hline
 
+Contriever & Dense &
+Unsupervised dense representations for semantic retrieval
+\cite{izacard2022contriever} \\ \hline
+
+SPLADE & Sparse neural &
+Sparse learned representations with lexical expansion
+\cite{formal2021splade} \\ \hline
+
+ColBERTv2 & Late interaction &
+Token-level document and query representations with late interaction
+\cite{santhanam2022colbertv2} \\ \hline
+
+Sentence Transformer Search & Dense semantic &
+Sentence embeddings and cosine similarity with Top-$K$ retrieval
+\cite{reimers2019sentence} \\ \hline
+
+State Aware Retrieval & Hybrid &
+Question relevance, gap coverage, and evidence novelty \\ \hline
+\end{tabular}
+\end{table}
+
+The comparison is used to determine how State Aware Retrieval performs
+against lexical, dense, sparse-neural, late-interaction, and standard
+semantic retrieval methods.
+
+% ------------------------------------------------------------
 \subsection{Ablation Study}
 
-An ablation study is conducted to determine the contribution of the three main GAR components: relevance, coverage, and novelty.
+The ablation study measures the contribution of each state signal used
+by State Aware Retrieval. The full SAR configuration is compared with
+versions where individual signals are removed.
 
-The complete GAR score is:
-
-\[
-S_{\mathrm{GAR}}=\alpha R+\beta C+\gamma N.
-\]
-
-Each component is removed separately to create three variants:
-
-\[
-S_{-R}=\beta C+\gamma N,
-\] \[
-S_{-C}=\alpha R+\gamma N,
-\] \[
-S_{-N}=\alpha R+\beta C.
-\]
-
-The results of these variants are compared with the complete GAR model to determine the contribution of each component.
-
-Two additional diagnostic variants are also considered. The first, $GAR_{\mathrm{Q-only}}$, uses only relevance to the original question. The second, $GAR_{\mathrm{Q+G}}$, uses question and gap relevance but excludes novelty. These variants help distinguish the benefit of explicitly using the information gap from the benefit of the complete relevance--coverage--novelty formulation.
-
-\subsection{Candidate-Pool Analysis}
-
-The effect of the ANN candidate-pool size $K_0$ is also evaluated. The following values are considered:
-
-\[
-K_0\in\{50,100,200,500\}.
-\]
-
-The different settings are compared based on retrieval performance and latency. The validation results are used to select the final $K_0$, which is then fixed for the test evaluation.
-
-The analysis also records whether ground-truth relevant evidence is present in the ANN candidate set. This distinguishes a candidate-generation failure, where a useful document never reaches GAR scoring, from a ranking failure, where the useful document is present but receives a low GAR score.
-
-\subsection{Iteration-Wise Analysis}
-
-Because GAR is designed for iterative retrieval, its behavior is analyzed separately across retrieval iterations. Retrieval quality is reported for the first retrieval step and for subsequent iterations where the MIGRES state contains previously collected evidence and a non-empty information gap.
-
-The analysis examines whether GAR's retrieval behavior changes as evidence accumulates. In particular, it investigates whether later iterations retrieve more complementary evidence and whether the relative usefulness of relevance, coverage, and novelty changes as the information state becomes more complete.
-
-This analysis is diagnostic and does not introduce an additional component or hyperparameter into GAR.
-
-\subsection{Failure-Case Analysis}
-
-A qualitative and quantitative error analysis is performed on questions for which GAR fails to retrieve required evidence or fails to improve the final answer. Failure cases are categorized according to the stage at which the problem occurs.
-
-The categories include:
-
-\begin{itemize}[leftmargin=1.5em]
-\item incorrect or incomplete information gaps produced by the surrounding MIGRES process;
-\item semantic mismatch between a valid document and the embedding-based retrieval representation;
-\item insufficient gap coverage despite high overall relevance;
-\item useful evidence being penalized by the novelty term because it is similar to previously collected evidence;
-\item relevant evidence being absent from the ANN candidate pool;
-\item multi-hop cases in which a document becomes useful only after another piece of evidence has been collected.
+\begin{itemize}[leftmargin=0.25in,itemsep=0.06in,parsep=0pt]
+\item \textbf{SAR-Full:} question relevance, gap similarity, and evidence similarity.
+\item \textbf{SAR-Without-Relevance:} removes question relevance.
+\item \textbf{SAR-Without-Gap:} removes gap similarity.
+\item \textbf{SAR-Without-Evidence:} removes evidence similarity.
+\item \textbf{Question-Only:} uses only document-question semantic similarity.
 \end{itemize}
 
-The purpose of this analysis is to identify the conditions under which GAR succeeds or fails without changing the proposed retrieval formulation.
+All ablation settings use the same corpus, embedding model, retrieval
+depth $K$, and evaluation protocol. The results are compared using the
+retrieval and downstream metrics defined in the evaluation study.
 
-\subsection{Gap-Coverage Diagnostic}
+% ------------------------------------------------------------
+\subsection{Retrieval Performance Evaluation}
 
-The primary GAR coverage measure uses normalized lexical token overlap. This is retained as the main implementation because it is simple, interpretable, and locally computable.
+The main retrieval experiment evaluates the quality of the documents
+selected by State Aware Retrieval. The selected SAR configuration is
+fixed after validation and compared with the baseline methods.
 
-A diagnostic analysis is performed to examine whether lexical overlap is a reasonable approximation of semantic coverage. Examples are inspected where a document appears to satisfy a missing information requirement despite having low token overlap, and where high token overlap does not correspond to useful evidence.
+Let $R_q$ be the set of relevant documents for question $q$, and let
+$T_K(q)$ be the Top-$K$ retrieved documents.
 
-This analysis is used to identify limitations of the current coverage formulation rather than to introduce a new coverage model into the primary experiment.
-
-\subsection{Evaluation Metrics}
-
-\subsubsection{Retrieval Evaluation}
-
-We evaluate retrieval using Recall@k, Precision@k, MRR, and nDCG@k. Recall@k measures how much relevant evidence is retrieved, while Precision@k measures how many retrieved documents are relevant. MRR measures how early the first relevant document appears, and nDCG@k evaluates the quality of the ranking. Evidence coverage is also reported where suitable annotations are available.
-
-\subsubsection{Downstream Answer Evaluation}
-
-Final answer quality is measured using the official dataset metrics, including Exact Match (EM), token-level F1, classification accuracy, and supporting-evidence quality where applicable.
-
-\subsubsection{Efficiency Evaluation}
-
-Efficiency is evaluated using retrieval latency, ANN indexing time, index memory, number of retrieval iterations, and number of documents scored. LLM calls, token usage, and API cost are also recorded where applicable.
-
-\subsubsection{Statistical Analysis}
-
-We report effect sizes and confidence intervals. Since all methods are evaluated on the same questions, paired bootstrap or paired permutation testing is used to determine whether performance differences are statistically significant.
-
-\section{Experimental Environment and Reproducibility}
-
-The experiments use a software environment that supports dataset preparation, sentence embedding, ANN indexing, GAR retrieval, and evaluation. The exact software versions, hardware configuration, and model settings used in the experiments are recorded.
-
-For reproducibility, the datasets, document corpus, models, GAR parameters, ANN settings, and software versions used in the experiments are recorded. The same data and evaluation settings are used for all retrieval methods. The GAR parameters selected during validation are fixed before the final test.
-
-The experimental pipeline is:
+\subsubsection{Recall@K}
 
 \[
-\text{Dataset}
-\rightarrow
-\text{MIGRES State}
-\rightarrow
-\text{GAR Retrieval and Ranking}
-\rightarrow
-\text{Evidence Update}
-\rightarrow
-\text{Evaluation}.
+\mathrm{Recall@K}(q)
+=
+\frac{|T_K(q)\cap R_q|}
+{|R_q|}
 \]
+
+Recall@K measures how much of the relevant evidence is retrieved.
+
+\subsubsection{Precision@K}
+
+\[
+\mathrm{Precision@K}(q)
+=
+\frac{|T_K(q)\cap R_q|}
+{K}
+\]
+
+Precision@K measures the proportion of retrieved documents that are
+relevant.
+
+\subsubsection{Hit@K}
+
+\[
+\mathrm{Hit@K}(q)
+=
+\begin{cases}
+1, & T_K(q)\cap R_q\neq\emptyset,\\
+0, & \text{otherwise}.
+\end{cases}
+\]
+
+Hit@K measures whether at least one relevant document is retrieved.
+
+\subsubsection{Mean Reciprocal Rank}
+
+If $r_q$ is the rank of the first relevant document:
+
+\[
+\mathrm{RR}(q)=\frac{1}{r_q}
+\]
+
+\[
+\mathrm{MRR}
+=
+\frac{1}{N}
+\sum_{q=1}^{N}
+\mathrm{RR}(q)
+\]
+
+MRR measures how early the first relevant document appears.
+
+\subsubsection{nDCG@K}
+
+\[
+\mathrm{DCG@K}
+=
+\sum_{i=1}^{K}
+\frac{2^{rel_i}-1}
+{\log_2(i+1)}
+\]
+
+\[
+\mathrm{nDCG@K}
+=
+\frac{\mathrm{DCG@K}}
+{\mathrm{IDCG@K}}
+\]
+
+where $rel_i$ is the relevance value at rank $i$ and
+$\mathrm{IDCG@K}$ is the ideal DCG \cite{jarvelin2002cumulated}.
+
+Only metrics supported by the ground-truth relevance information of a
+dataset are reported.
+
+% ------------------------------------------------------------
+\subsection{Iterative State Analysis}
+
+State Aware Retrieval is intended to change its retrieval behavior as
+the evidence and information gap change. This experiment studies the
+retrieval results across successive iterations.
+
+Let $T_t$ be the documents retrieved at iteration $t$.
+
+\subsubsection{Cumulative Recall}
+
+\[
+U_t
+=
+\bigcup_{i=1}^{t}T_i
+\]
+
+\[
+\mathrm{CumulativeRecall}_t
+=
+\frac{|U_t\cap R_q|}
+{|R_q|}
+\]
+
+This measures the relevant evidence collected up to iteration $t$.
+
+\subsubsection{Marginal Recall Gain}
+
+\[
+\Delta R_t
+=
+\mathrm{CumulativeRecall}_t
+-
+\mathrm{CumulativeRecall}_{t-1}
+\]
+
+This measures the additional relevant evidence found at the current
+iteration.
+
+\subsubsection{New Document Rate}
+
+\[
+\mathrm{NewRate}_t
+=
+\frac{
+\left|
+T_t
+\setminus
+\bigcup_{i=1}^{t-1}T_i
+\right|
+}
+{|T_t|}
+\]
+
+This measures the proportion of newly retrieved documents.
+
+\subsubsection{Retrieval Overlap}
+
+\[
+J(T_t,T_{t-1})
+=
+\frac{|T_t\cap T_{t-1}|}
+{|T_t\cup T_{t-1}|}
+\]
+
+This measures the overlap between successive retrieval sets.
+
+These measures are used to determine whether the changing evidence and
+information gap lead to different and complementary retrieval results.
+
+% ------------------------------------------------------------
+\subsection{Downstream RAG and Robustness Evaluation}
+
+State Aware Retrieval is evaluated within the MIGRES framework to
+measure its effect on the final answer. The same MIGRES configuration
+and language model are used for SAR and the baseline retrieval methods.
+
+\subsubsection{Answer Evaluation}
+
+Final answer quality is measured using the official metrics of each
+dataset where available.
+
+Exact Match:
+
+\[
+\mathrm{EM}
+=
+\frac{
+\#\text{exactly correct answers}
+}
+{N}
+\]
+
+Accuracy:
+
+\[
+\mathrm{Accuracy}
+=
+\frac{
+\#\text{correct answers}
+}
+{N}
+\]
+
+For token-level F1:
+
+\[
+P
+=
+\frac{
+|\mathrm{tokens}(A_p)\cap\mathrm{tokens}(A_g)|
+}
+{|\mathrm{tokens}(A_p)|}
+\]
+
+\[
+R
+=
+\frac{
+|\mathrm{tokens}(A_p)\cap\mathrm{tokens}(A_g)|
+}
+{|\mathrm{tokens}(A_g)|}
+\]
+
+\[
+F1
+=
+\frac{2PR}{P+R}
+\]
+
+\subsubsection{RGB Robustness}
+
+The Retrieval-Augmented Generation Benchmark (RGB) is used to test
+robustness under four settings: noise robustness, negative rejection,
+information integration, and counterfactual robustness
+\cite{chen2024rgb}.
+
+For noise robustness:
+
+\[
+\mathrm{Accuracy}(\rho)
+=
+\frac{
+\#\text{correct answers at noise level }\rho
+}
+{N}
+\]
+
+For negative rejection:
+
+\[
+\mathrm{RejectionRate}
+=
+\frac{
+\#\text{correctly rejected cases}
+}
+{
+\#\text{negative cases}
+}
+\]
+
+For counterfactual error detection:
+
+\[
+\mathrm{ED}
+=
+\frac{
+\#\text{correctly detected counterfactual cases}
+}
+{
+\#\text{counterfactual cases}
+}
+\]
+
+For counterfactual correction:
+
+\[
+\mathrm{CR}
+=
+\frac{
+\#\text{correctly corrected detected cases}
+}
+{
+\#\text{detected error cases}
+}
+\]
+
+The same evaluation settings are used for SAR and the selected baseline
+methods.
+
+% ------------------------------------------------------------
+\subsection{Computational Cost Evaluation}
+
+The computational cost of State Aware Retrieval is measured because the
+method scores the complete document corpus at each retrieval iteration.
+
+\subsubsection{Retrieval Latency}
+
+Let $L_i$ be the retrieval time for question $i$.
+
+\[
+L_{\mathrm{avg}}
+=
+\frac{1}{N}
+\sum_{i=1}^{N}L_i
+\]
+
+\subsubsection{Documents Scored}
+
+If the corpus contains $|\mathcal{D}|$ documents and the system performs
+$T$ retrieval iterations:
+
+\[
+N_{\mathrm{scored}}
+=
+|\mathcal{D}|\times T
+\]
+
+\subsubsection{Similarity Calculations}
+
+If each document is compared with one question, $m$ gaps, and $n$
+evidence items:
+
+\[
+N_{\mathrm{similarity}}
+=
+|\mathcal{D}|(1+m+n)
+\]
+
+\subsubsection{Retrieval Overhead}
+
+\[
+\mathrm{Overhead(\%)}
+=
+\frac{
+L_{\mathrm{SAR}}-L_{\mathrm{baseline}}
+}
+{
+L_{\mathrm{baseline}}
+}
+\times100
+\]
+
+The experiment records retrieval time, total iteration time, embedding
+time, number of documents scored, and memory usage.
 \clearpage
+% ------------------------------------------------------------
+\section{Experimental Environment and Reproducibility}
+
+The project uses a Python-based environment for dataset processing,
+document embedding, State Aware Retrieval, MIGRES integration, and
+evaluation. The dataset versions, model versions, software packages,
+hardware, and experiment settings are recorded for reproducibility.
+
+The document corpus is embedded before retrieval and the embeddings are
+stored for reuse. At the end of each retrieval iteration, the corpus is
+checked for new or updated documents. New documents are embedded and
+added to the stored collection, while updated documents are re-embedded.
+
+The main experimental pipeline is:
+
+\[
+\begin{aligned}
+\text{Document Corpus}
+&\rightarrow \text{Document Embeddings}\\
+&\rightarrow \text{MIGRES State}
+\rightarrow \text{State Aware Retrieval}\\
+&\rightarrow \text{Top-}K
+\rightarrow \text{MIGRES State Update}.
+\end{aligned}
+\]
+
+The scoring hyperparameters are selected using validation data, while
+the retrieval settings are fixed according to the experimental design.
+The selected configuration is frozen before the final test evaluation.
+
+% ------------------------------------------------------------
 \section{Chapter Solution Summary}
 
-This chapter presented the proposed Gap-Aware Retrieval (GAR) approach for iterative document retrieval. GAR considers the original question, the current information gap, and previously collected evidence to select relevant and less redundant documents.
+This chapter presented State Aware Retrieval (SAR) as a direct retrieval
+method within the MIGRES framework. SAR uses the current question,
+information gaps, and collected evidence to guide document selection
+from the complete document corpus.
 
-The chapter described the GAR architecture, retrieval process, mathematical formulation, and experimental design. GAR will evaluated against established retrieval methods using controlled experiments, with hyperparameters selected on the validation set before final test evaluation. Ablation and efficiency analyses are also included to examine the contribution and practical performance of the proposed approach.
+The documents are represented using a common Sentence Transformer
+embedding space. At each iteration, the documents are compared with the
+current retrieval state, and a final score is used to select the
+top-$K$ documents. The selected documents are then passed to MIGRES for
+filtering, evidence extraction, and state update.
 
-Overall, the methodology provides a complete framework for implementing and evaluating GAR for iterative information retrieval. The added iteration-wise and failure-case analyses deepen the evaluation without changing the core GAR formulation.
+The proposed method does not use a separate BM25 candidate stage or a
+fixed retrieval threshold. The final scoring formulation is developed
+and evaluated during implementation. The experiments evaluate the
+contribution of the state signals, compare SAR with existing retrieval
+methods, measure retrieval and downstream RAG performance, study its
+behaviour across iterations, and measure its computational cost.
 
 \clearpage
 
-% ============================================================
 % CHAPTER 6
 % SOFTWARE AND HARDWARE REQUIREMENTS
 % ============================================================
@@ -1472,99 +1927,156 @@ Overall, the methodology provides a complete framework for implementing and eval
 
 \justifying
 
-The proposed solution requires a Python-based environment for dataset preparation, embedding generation, vector search, GAR retrieval and ranking, hyperparameter selection, and evaluation. Jupyter Notebook is used for experiment development and analysis, while LaTeX is used for preparing the research document. The main software and hardware requirements are described below.
+The proposed solution uses a Python-based environment for dataset
+preparation, document embedding, State Aware Retrieval, hyperparameter
+selection, MIGRES integration, and evaluation. Jupyter Notebook is used
+for experiment development and analysis, while LaTeX is used for
+preparing the research document. The main software and hardware
+requirements are described below.
 
 \subsection*{6.1 Software Requirements}
 
-The main software tools required for the implementation are shown in Table~\ref{tab:software-requirements}.
+The main software tools required for the implementation are shown in
+Table~\ref{tab:software-requirements}.
 
 \begin{table}[H]
 \centering
-\caption{Software requirements}
+\caption{Software Requirements}
 \label{tab:software-requirements}
 \renewcommand{\arraystretch}{1.2}
 \begin{tabular}{|p{1.65in}|p{1.45in}|p{2.95in}|}
 \hline
 \textbf{Software / Tool} & \textbf{Version} & \textbf{Purpose} \\ \hline
-Python & 3.14.7 & Main programming environment for GAR implementation, data processing, retrieval, and evaluation. \\ \hline
-Jupyter Notebook & 7.6.2 & Experiment development, execution, and result analysis. \\ \hline
-PyTorch & 2.13.0 & Tensor computation and neural model execution. \\ \hline
-Sentence Transformers & 5.6.1 (model: multi-qa-mpnet-base-cos-v1) & Generates semantic embeddings for questions, documents, gaps, and evidence. \\ \hline
-Pinecone & Client v9.1.0 (API 2025-10) & Stores document embeddings and performs vector similarity search for candidate retrieval. \\ \hline
-Bayesian Optimization Library & 3.3.0 (bayesian-optimization) & Optimizes GAR hyperparameters on the validation set. \\ \hline
-LaTeX & Overleaf & Preparation of the research document. \\ \hline
+
+Python & 3.14.7 &
+Main programming environment for data processing, document embedding,
+retrieval, and evaluation. \\ \hline
+
+Jupyter Notebook & 7.6.2 &
+Experiment development, execution, and result analysis. \\ \hline
+
+PyTorch & 2.13.0 &
+Tensor computation and neural model execution. \\ \hline
+
+Sentence Transformers & 5.6.1 &
+Generates semantic embeddings for questions, documents, information
+gaps, and evidence using
+\texttt{multi-qa-mpnet-base-cos-v1}. \\ \hline
+
+Pinecone & 9.1.0 &
+Stores document embeddings and metadata as the persistent vector
+database for the document corpus. \\ \hline
+
+Bayesian Optimization & 3.3.0 &
+Selects the State Aware Retrieval scoring hyperparameters using
+validation data. \\ \hline
+
+LaTeX & Overleaf &
+Preparation of the research document. \\ \hline
+
+Gemini API & Gemini 3.8 Flash &
+Provides the language model used by MIGRES for information-gap
+processing and response generation. \\ \hline
+
 \end{tabular}
 \end{table}
 
-The primary embedding model is \texttt{multi-qa-mpnet-base-cos-v1} from Sentence Transformers. It is used to generate a common semantic representation for questions, information gaps, documents, and collected evidence. The model remains fixed and is not fine-tuned during the primary experiments.
-\clearpage
+The primary embedding model is
+\texttt{sentence-transformers/multi-qa-mpnet-base-cos-v1}. It converts
+questions, documents, information gaps, and collected evidence into a
+common semantic vector space. The model produces 768-dimensional
+normalized embeddings and supports cosine similarity
+\cite{reimers2019sentence,st2020mpnet}.
+
+The document embeddings are stored in Pinecone and reused during
+retrieval. When a new document is added or an existing document is
+changed, its embedding is generated using the same Sentence Transformer
+model and the corresponding vector is added or updated in Pinecone.
+The embedding model remains fixed and is not fine-tuned during the main
+experiments.
+
+% ------------------------------------------------------------
 \subsection*{6.2 Modules Description}
 
-The proposed GAR methodology is divided into three major modules: 
-the Retrieval Module, the Scoring Module, and the Selection Module. 
-The responsibilities of each module are described in Table~\ref{tab:module-description}.
+The proposed State Aware Retrieval methodology is divided into three
+main modules: the Embedding and Corpus Module, the Scoring Module, and
+the Selection Module. Their responsibilities are shown in
+Table~\ref{tab:module-description}.
 
 \begin{table}[H]
 \centering
 \caption{Modules Description}
 \label{tab:module-description}
 \renewcommand{\arraystretch}{1.25}
-\begin{tabular}{|p{1.65in}|p{4.4in}|}
+\begin{tabular}{|p{1.75in}|p{4.3in}|}
 \hline
 \textbf{Module} & \textbf{Responsibility} \\ \hline
 
-Retrieval Module &
-Generates embeddings for the question, current information gap, and document corpus using the Sentence Transformer model. It then performs Approximate Nearest Neighbor (ANN) search to generate the candidate document set $C_t$. \\ \hline
+Embedding and Corpus Module &
+Encodes the document corpus using the Sentence Transformer model and
+stores the document embeddings and metadata in Pinecone. At the end of
+each retrieval iteration, the corpus is checked for new or changed
+documents. Their embeddings are then added or updated in Pinecone.
+\\ \hline
 
 Scoring Module &
-Evaluates the candidate documents using three signals: relevance, gap coverage, and evidence novelty. These scores are combined using the GAR scoring function $S(d \mid q,E_t,G_t) = \alpha R + \beta C + \gamma N$. \\ \hline
+Represents the current question, information gaps, and collected
+evidence using the same Sentence Transformer model. It compares the
+document embeddings with these state elements using semantic
+similarity and produces the values required for State Aware Retrieval
+scoring. \\ \hline
 
 Selection Module &
-Ranks the candidate documents according to their GAR scores and selects the Top-$k$ documents. The selected documents are passed to MIGRES for filtering and extraction, after which the updated evidence $E_{t+1}$ and information gap $G_{t+1}$ are used for the next retrieval iteration. \\ \hline
+Uses the final State Aware Retrieval score to rank the documents and
+select the Top-$K$ documents. The selected documents are passed to
+MIGRES for filtering and evidence extraction. The updated evidence and
+information-gap state are then used for the next retrieval iteration.
+\\ \hline
 
 \end{tabular}
 \end{table}
 
+\subsection*{6.3 Hardware Requirements}
+
+The proposed system can be implemented on a standard computer system
+with internet access. The main hardware requirements are:
+
+\begin{itemize}[leftmargin=0.30in,itemsep=0.08in]
+\item \textbf{Processor:} Intel Core i5 / AMD Ryzen 5 or equivalent.
+\item \textbf{RAM:} Minimum 16 GB.
+\item \textbf{Storage:} At least 20 GB of available SSD storage.
+\item \textbf{GPU:} Optional; an NVIDIA GPU with 8 GB VRAM may be used
+for faster local embedding computation.
+\end{itemize}
+
 \clearpage
 % ============================================================
-% CHAPTER 7
-% APPLICATIONS
+% CHAPTER 5 -- APPLICATIONS
 % ============================================================
 
 \addcontentsline{toc}{chapter}{7. APPLICATIONS}
-
 \chaptertitle{7}{APPLICATIONS}
 
-\begin{enumerate}[
-    leftmargin=0.30in,
-    itemsep=0.12in
-]
+\begin{enumerate}[leftmargin=0.30in,itemsep=0.12in]
 
 \item
-\textbf{Multi-Hop Question Answering:}
-The methodology is suited to questions whose answers require complementary information from multiple documents or retrieval steps.
+\textbf{Complex Question Answering:} Can support AI systems in answering complex questions where the required information is spread across multiple documents and cannot be obtained through a single retrieval step.
 
 \item
-\textbf{Iterative Retrieval-Augmented Generation:}
-GAR can serve as a retrieval component in RAG systems that repeatedly acquire evidence as the answer is developed and the information requirement changes.
+\textbf{Multi-Step Information Retrieval:} Can be applied to systems that repeatedly search for information, helping each retrieval step focus on information that has not yet been obtained.
 
 \item
-\textbf{Research-Oriented Evidence Retrieval:}
-The gap and evidence signals can help research-oriented systems focus subsequent retrieval on information that is still required rather than repeatedly collecting already-covered material.
+\textbf{Research and Knowledge Discovery:} Can assist in collecting information from large document collections by prioritizing useful and complementary evidence instead of repeatedly retrieving similar content.
 
 \item
-\textbf{Large-Scale Evidence Gathering:}
-ANN candidate generation allows the retrieval stage to operate over large document collections while restricting full GAR scoring to a manageable candidate set.
-
-\item
-\textbf{Missing-Information-Guided AI Systems:}
-The approach is applicable to systems that explicitly maintain an information-gap state and can provide that state to the retrieval component.
+\textbf{Evidence-Based RAG Applications:} Can be integrated into RAG-based applications where the system needs to build a complete set of evidence before generating an answer, such as question answering, document analysis, and knowledge-based assistants.
 
 \end{enumerate}
-
 \clearpage
 
+
 % ============================================================
+
 % CHAPTER 8
 % GANTT CHART
 % ============================================================
@@ -1579,7 +2091,7 @@ The approach is applicable to systems that explicitly maintain an information-ga
 
 \begin{center}
 
-\textbf{Figure 6.1: Gantt Chart}
+\textbf{Figure 8.1: Gantt Chart}
 
 \vspace{0.15in}
 
@@ -1599,11 +2111,28 @@ The approach is applicable to systems that explicitly maintain an information-ga
 
 \justifying
 
-This methodology presents a controlled approach for evaluating Gap-Aware Retrieval (GAR) within the MIGRES framework. GAR uses the current information gap and previously collected evidence to retrieve and rank documents based on relevance, coverage, and novelty. The selected documents are then passed to MIGRES for filtering, extraction, and further iteration.
+This methodology presents \textbf{State Aware Retrieval (SAR)} as a
+direct retrieval method within the MIGRES framework. The proposed method
+uses the current question, information gaps, and previously collected
+evidence to guide document selection from the complete document corpus.
+The selected documents are then passed to MIGRES for filtering, evidence
+extraction, and further state updates.
 
-GAR is evaluated against established retrieval methods, including BM25, DPR, Contriever, ColBERTv2, and SPLADE. Ablation studies are used to examine the contribution of each GAR component, while retrieval quality, answer quality, and efficiency are evaluated using predefined metrics.
+The study will examine whether making retrieval aware of the current
+information state can improve the quality and usefulness of retrieved
+evidence during iterative retrieval. The contribution of each state
+signal will be studied through ablation experiments, while comparisons
+with established retrieval methods will measure the overall retrieval
+performance of SAR. The effect on final RAG performance, behaviour across
+iterations, robustness, and computational cost will also be evaluated.
 
-Overall, the methodology is designed to determine whether using the information gap and existing evidence can improve retrieval in iterative information-seeking systems while keeping the surrounding framework unchanged.
+Overall, this methodology provides a clear framework for testing whether
+State Aware Retrieval can make iterative retrieval more focused on the
+information that is relevant, still missing, and not already covered by
+previous evidence. The main MIGRES framework remains unchanged, allowing
+the study to directly examine the effect of the proposed retrieval
+method. The final experimental results will determine the effectiveness
+and practical value of SAR for iterative retrieval-augmented generation.
 
 \clearpage
 
