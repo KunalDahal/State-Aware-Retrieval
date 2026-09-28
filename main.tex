@@ -56,7 +56,7 @@
 \begin{abstract}
 Retrieval systems commonly rank documents according to their relevance to the original query. This can be insufficient in iterative information-seeking tasks, where the system already has some evidence and needs to retrieve only the information that is still missing. This project proposes \textbf{Gap-Aware Retrieval (GAR)}, a reranking algorithm that reorders a first-stage candidate set using three signals: relevance to the question, coverage of the missing information, and novelty with respect to previously collected evidence.
 
-GAR is evaluated inside the existing MIGRES framework, which identifies missing information during iterative retrieval. MIGRES is the experimental framework; a first-stage retriever performs retrieval from the corpus, and GAR is the proposed reranking component applied on top of that retriever's candidates. Which first-stage retriever is used is itself selected empirically (Section~2) rather than fixed in advance; BM25 is one of the candidates compared for that role. The surrounding MIGRES components are kept fixed as far as the original implementation permits. GAR is compared against no reranking and against ten established reranking algorithms --- cross-encoder reranking (MonoBERT), MonoT5, pairwise reranking (DuoBERT), ColBERTv2 late-interaction reranking, classical learning-to-rank (LambdaMART), neural learning-to-rank (RankT5), Maximal Marginal Relevance (MMR), coverage-driven reranking (AIR), relevant-information-gain reranking (Dartboard/RIG), and LLM-based listwise reranking (RankGPT) --- on the datasets used in the MIGRES evaluation: WikiHop, HotpotQA, MuSiQue, Natural Questions, TriviaQA, and StrategyQA.
+GAR is evaluated inside the existing MIGRES framework, which identifies missing information during iterative retrieval. MIGRES is the experimental framework; a first-stage retriever performs retrieval from the corpus, and GAR is the proposed reranking component applied on top of that retriever's candidates. Which first-stage retriever is used is itself selected empirically (Section~2) rather than fixed in advance; BM25 is one of the candidates compared for that role. The surrounding MIGRES components are kept fixed as far as the original implementation permits. GAR is compared against no reranking and against ten reranking baselines (AIR, Dartboard/RIG, and RankGPT are adapted to the common-candidate-set setting) --- cross-encoder reranking (MonoBERT), MonoT5, pairwise reranking (DuoBERT), ColBERTv2 late-interaction reranking, classical learning-to-rank (LambdaMART), neural learning-to-rank (RankT5), Maximal Marginal Relevance (MMR), coverage-driven reranking (AIR), relevant-information-gain reranking (Dartboard/RIG), and LLM-based listwise reranking (RankGPT) --- on the datasets used in the MIGRES evaluation: WikiHop, HotpotQA, MuSiQue, Natural Questions, TriviaQA, and StrategyQA.
 
 The study evaluates retrieval quality, downstream answer quality, ablations, efficiency, and statistical significance. GAR has no trainable parameters in the proposed implementation. Its scoring hyperparameters are selected on a held-out validation set using Bayesian optimization and then frozen before test evaluation. The formulation is motivated by prior work on missing-information-guided retrieval, iterative evidence coverage, relevant information gain, sentence embeddings, and efficient nearest-neighbor search \citep{wang-etal-2025-llms,yadav-etal-2020-unsupervised,pickett-etal-2024-rig,reimers-gurevych-2019-sentence,johnson-etal-2017-faiss}.
 \end{abstract}
@@ -305,7 +305,7 @@ These five methods represent the established landscape of first-stage retrieval,
 }
 \]
 
-These five methods are used through their published or official implementations where possible. Whichever of them achieves the best first-stage retrieval quality on $D_{\mathrm{val}}$ (Section~\ref{sec:metrics}) is selected as $\mathrm{FSR}$ and held fixed for the rest of the project --- feeding both GAR and the reranking baselines in Section~3 with an identical candidate set. This selection is a separate, question-only experiment: each candidate retriever is run on the question $q$ alone, and its result is therefore not directly equivalent to the gap-aware candidate generation of Eq.~(9), in which the selected $\mathrm{FSR}$ is subsequently called once for $q$ and once for each gap requirement $g_i$. Until that selection is made, BM25 is used only as the running illustrative example in the rest of this section and in the worked examples below, because it is the simplest and most standard first-stage method to describe; it is not thereby assumed to be the winner.
+These five methods are used through their published or official implementations where possible. Whichever of them achieves the best first-stage retrieval quality on $D_{\mathrm{val}}$ (Section~\ref{sec:metrics}) is selected as $\mathrm{FSR}$ and held fixed for the rest of the project --- feeding both GAR and the reranking baselines in Section~3 with an identical candidate set. The selection is made under the same candidate-construction procedure that the main experiment later uses: each candidate retriever builds the candidate set of Eq.~(9), with one call for $q$ and one for each gap requirement $g_i$, at a fixed per-query depth, on a recorded reference MIGRES trajectory (Section~\ref{sec:e1}). A question-only run is reported alongside it for reference but is not used for selection. Until that selection is made, BM25 is used only as the running illustrative example in the rest of this section and in the worked examples below, because it is the simplest and most standard first-stage method to describe; it is not thereby assumed to be the winner.
 
 \subsection{BM25}
 
@@ -416,7 +416,7 @@ MIGRES+SPLADE & Neural sparse & Candidate first-stage retriever\\
 \end{tabular}
 \end{center}
 
-All five are evaluated on $D_{\mathrm{val}}$ under the same retrieval-quality metrics (Section~\ref{sec:metrics}), and established implementations and published checkpoints are used where possible; their exact checkpoint, index, and retrieval parameters must be recorded. The winner of this comparison becomes $\mathrm{FSR}$, held fixed for the rest of the project. All baselines should use established implementations and published checkpoints where possible. GAR does not appear in this table: it is not a first-stage retriever, but a reranking algorithm applied on top of $\mathrm{FSR}$'s output. GAR's own comparison, against ten established reranking algorithms, is given below.
+All five are evaluated on $D_{\mathrm{val}}$ under the same retrieval-quality metrics (Section~\ref{sec:metrics}), and established implementations and published checkpoints are used where possible; their exact checkpoint, index, and retrieval parameters must be recorded. The winner of this comparison becomes $\mathrm{FSR}$, held fixed for the rest of the project. All baselines should use established implementations and published checkpoints where possible. GAR does not appear in this table: it is not a first-stage retriever, but a reranking algorithm applied on top of $\mathrm{FSR}$'s output. GAR's own comparison, against ten reranking baselines (three of them adapted; Section~\ref{sec:baseline-protocol}), is given below.
 
 % ============================================================
 \section{Information Reranking Algorithms}
@@ -557,7 +557,7 @@ S_{\mathrm{MMR}}(d)
 
 where $S$ is the set of documents already selected, $sim$ is a similarity function (the original definition allows different similarity functions for the query term and the redundancy term), and $\lambda_{\mathrm{MMR}}\in[0,1]$ is MMR's own relevance-vs-redundancy trade-off parameter, unrelated to GAR's own scoring weights $\alpha,\beta,\gamma$ (Section~5.8), which play no role in this baseline. For the first selected document, when $S=\varnothing$, the redundancy term $\max_{d_j\in S}sim(d,d_j)$ is defined as $0$, so the first document is selected using query relevance alone. MMR has no explicit gap-coverage term: it balances only relevance and redundancy, whereas GAR separately scores relevance, gap coverage, and evidence novelty.
 
-\subsection{AIR (Coverage-Driven Iterative Evidence Retrieval)}
+\subsection{AIR (Coverage-Driven Iterative Evidence Retrieval), Adapted}
 
 AIR reformulates its query after each retrieval step by focusing on keywords not yet covered by the evidence already retrieved, so that later steps target complementary evidence rather than repeating earlier ones \citep{yadav-etal-2020-unsupervised}. AIR directly motivated GAR's coverage term $C$ (Section~4).
 
@@ -579,7 +579,7 @@ where a query term counts as covered if its cosine similarity with some term of 
 
 Adapted here as a reranker, AIR is applied to the $\mathrm{FSR}$ candidate set $\mathcal{C}_t$: the query $Q$ is the question $q$, the reformulated query $Q_r$ (with the expansion rule above) is built from the current evidence $E_t$, and each $d\in\mathcal{C}_t$ is ranked by $s(Q_r,d)$. Dividing by $|Q_r|$ would not change the ranking and is omitted. If $Q_r=\varnothing$ (all query terms are covered), AIR's stopping criterion is met and no reformulated query exists; in that case we keep the fused FSR ordering already defined for the no-reranking control, i.e.\ ranking $\mathcal{C}_t$ by $\max\big(\mathrm{FSR}(d,q),\max_i \mathrm{FSR}(d,g_i)\big)$. AIR does not use the gap $G_t$: its own notion of missing information is $Q_r$. Unlike GAR, AIR has no separate relevance, coverage, and novelty terms; coverage enters only through query reformulation.
 
-\subsection{Dartboard / RIG (Relevant Information Gain)}
+\subsection{Dartboard / RIG (Relevant Information Gain), Adapted}
 
 Dartboard selects a set of passages that maximizes the total relevant information gained, so that redundancy is penalized implicitly rather than through an explicit trade-off weight \citep{pickett-etal-2024-rig}. It is modeled as a game: a target passage $T$ is drawn with probability $P(T=t\mid q,\sigma)=\mathcal{N}(q,t,\sigma)$, the query lands near it, and a set of guesses $G$ is scored by how close its closest guess is to the target. With a Gaussian kernel the objective (paper Eq.~2) is, up to sign and constants:
 
@@ -608,7 +608,7 @@ S_{\mathrm{Dartboard}}(d\mid G)
 \qquad d\in\mathcal{C}_t\setminus G,
 \]
 
-and the reranked list is the order of selection. The original implementation works in log space with a log-sum-exp for numerical stability, which gives the same ranking. Because the maximum ensures that an exact duplicate adds no information, duplicates are not selected until all non-duplicates are exhausted. As in the original, Dartboard uses neither the collected evidence $E_t$ nor the gap $G_t$; it is included because it directly motivated GAR's novelty term $N$ (Section~4). Its only hyperparameter is $\sigma$, and the original work shows that it generalizes both nearest-neighbor retrieval and MMR.
+and the reranked list is the order of selection. The original implementation works in log space with a log-sum-exp for numerical stability, which gives the same ranking. Because the maximum ensures that an exact duplicate adds no information, duplicates are not selected until all non-duplicates are exhausted. Only the scope is adapted: the original set-level greedy objective is applied unchanged to $\mathcal{C}_t$, and no simplified relevance-minus-similarity score is substituted for it. As in the original, Dartboard uses neither the collected evidence $E_t$ nor the gap $G_t$; it is included because it directly motivated GAR's novelty term $N$ (Section~4). Its only hyperparameter is $\sigma$, and the original work shows that it generalizes both nearest-neighbor retrieval and MMR.
 
 \subsection{RankT5}
 
@@ -650,8 +650,8 @@ MIGRES+FSR+ColBERTv2 & Late interaction & Reranking baseline\\
 MIGRES+FSR+LambdaMART & Classical learning-to-rank & Reranking baseline\\
 MIGRES+FSR+RankT5 & Neural learning-to-rank & Reranking baseline\\
 MIGRES+FSR+MMR & Relevance vs.\ redundancy & Closest conceptual baseline\\
-MIGRES+FSR+AIR & Gap-coverage-driven & Direct precursor to $C$\\
-MIGRES+FSR+Dartboard/RIG & Relevance vs.\ novelty & Direct precursor to $N$\\
+MIGRES+FSR+AIR & Gap-coverage-driven & Adapted baseline; precursor to $C$\\
+MIGRES+FSR+Dartboard/RIG & Relevance vs.\ novelty & Adapted baseline; precursor to $N$\\
 MIGRES+FSR+RankGPT & LLM listwise & Reranking baseline\\
 MIGRES+FSR+GAR & Gap-aware reranking & Proposed method\\
 \bottomrule
@@ -659,6 +659,22 @@ MIGRES+FSR+GAR & Gap-aware reranking & Proposed method\\
 \end{center}
 
 All rerankers are applied to the identical $\mathrm{FSR}$ candidate set $\mathcal{C}_t$ for each question, so that only the reranking method varies across systems. AIR and Dartboard/RIG are included not merely as baselines but as the two prior works that directly motivated GAR's coverage and novelty terms; the comparison therefore also tests whether GAR's fused three-signal score outperforms each of its own inspirations used alone.
+
+\subsection{Baseline Configuration Protocol}
+\label{sec:baseline-protocol}
+
+All rerankers are configured under one rule, fixed before any $D_{\mathrm{test}}$ result is inspected, so that the comparison with GAR is controlled.
+
+\begin{itemize}[leftmargin=1.5em]
+\item \textbf{Adaptations.} Two baselines are \emph{adapted} rather than reproduced. AIR is turned from an iterative query-reformulation method into a single-pass reranker of $\mathcal{C}_t$ (Section~3.9), and RankGPT is applied to the full common candidate set with the sliding window of Section~3.12. Dartboard/RIG keeps its original set-level greedy objective and is adapted only in scope (it selects from $\mathcal{C}_t$). Each adaptation is recorded in the configuration, and these three systems are described as adapted baselines in all reporting.
+\item \textbf{Checkpoints.} Every neural baseline uses a published checkpoint, identified by exact name and version, without fine-tuning on any $D_{\mathrm{val}}$ or $D_{\mathrm{test}}$ data. If no public checkpoint exists for a method (possibly RankT5), it is trained following the original recipe on the original training data (MS MARCO), never on the evaluation datasets.
+\item \textbf{Hyperparameters.} Each baseline's free hyperparameters ($\lambda_{\mathrm{MMR}}$; $\sigma$ for Dartboard; $M$ and $T$ for AIR; the tree parameters of LambdaMART) are either fixed at the values of the original publication or tuned on $D_{\mathrm{val}}$ only, with Recall@$k$ as the objective, over a grid fixed and recorded in advance. The number of configurations tried for each system is recorded. GAR uses Bayesian optimization, so the search budgets are not identical, and this is reported as a limitation together with the shared-$K_0$ limitation of Section~6.13.5.
+\item \textbf{LambdaMART.} It is implemented with a gradient-boosted-tree library using a LambdaRank objective (for example LightGBM). Its features are fixed in advance: the fused first-stage score, the first-stage rank, the fraction of $\tau(q)$ found in $\tau(d)$, and document length in tokens. It is trained on the official training split using question-only first-stage candidate lists from the selected $\mathrm{FSR}$ with binary relevance labels from the evidence annotations, because no MIGRES gap trajectories are generated on the training split. Its tree hyperparameters are tuned on $D_{\mathrm{val}}$.
+\item \textbf{RankGPT.} One fixed language model is used, namely the answer-generation model of the MIGRES configuration, recorded with its exact version. Decoding is deterministic (temperature $0$), the permutation-generation prompt of \citet{sun-etal-2023-chatgpt} is used and stored verbatim, the window is $w=20$ with step $s=10$, and the initial order is the fused first-stage order of Section~6.4.
+\item \textbf{Input length.} Each neural baseline truncates the document tail at its own maximum input length; the fraction of truncated candidates is reported for every baseline.
+\end{itemize}
+
+Any training or tuning above uses no test annotations, and all resulting settings are frozen before $D_{\mathrm{test}}$ is run.
 
 % ============================================================
 \section{Development and Introduction of GAR}
@@ -786,7 +802,7 @@ We use:
 
 as the fixed embedding model. The model maps sentences and paragraphs to 768-dimensional dense vectors and was designed for semantic search \citep{reimers-gurevych-2019-sentence,multiqa-mpnet}.
 
-The same model is used to embed the question, candidate documents, and collected evidence, for the relevance and novelty terms; gap requirements are not embedded and are processed by the token-overlap Coverage term. Candidate document embeddings are computed on demand for $\mathcal{C}_t$; GAR does not maintain a corpus-wide embedding index, since the first-stage retriever operates directly on raw text.
+The same model is used to embed the question, candidate documents, and collected evidence, for the relevance and novelty terms; gap requirements are not embedded and are processed by the token-overlap Coverage term. The model accepts at most 512 word pieces, so any question, evidence item, or candidate longer than this is truncated to its first 512 word pieces before embedding, and no chunking or pooling over chunks is used; the fraction of truncated inputs is reported per dataset. The corpus passage is the retrieval unit, so most candidates are expected to fall within this limit. Candidate document embeddings are computed on demand for $\mathcal{C}_t$; GAR does not maintain a corpus-wide embedding index, since the first-stage retriever operates directly on raw text.
 
 \subsection{Cosine Similarity}
 
@@ -834,7 +850,7 @@ Relevance is deliberately simple: it reuses the single similarity primitive from
 
 \subsection{Gap Coverage}
 
-Let $\tau(x)$ be the set of normalized content tokens obtained after the fixed preprocessing pipeline.
+Let $\tau(x)$ be the set of normalized content tokens obtained after the fixed preprocessing pipeline. The pipeline is: Unicode NFKC normalization; lowercasing; tokenization into alphanumeric word tokens (the regular expression \texttt{\textbackslash w+}); removal of English stopwords (the NLTK English list); and Porter stemming; the result is treated as a set. The same pipeline is used everywhere $\tau(\cdot)$ appears (including the baselines of Sections~3.8--3.9 and the LambdaMART term-overlap feature), it is applied to the full text of $d$ as retrieved (not to a truncated version), and the exact library versions are recorded.
 
 For a non-empty gap requirement:
 
@@ -957,6 +973,8 @@ $K_0$ & First-stage retrieval depth per query (question or gap requirement); can
 \end{center}
 
 The final retrieval depth $k$ is an \textbf{experimental setting}, not a GAR-specific scoring parameter. It should be kept the same across systems for fair comparison.
+
+Two depths must not be confused. $K_0^{\mathrm{sel}}$ is a fixed, pre-specified per-query depth used only to select $\mathrm{FSR}$ in E1 (Section~\ref{sec:e1}). $K_0$ is the per-query depth that Bayesian optimization tunes for GAR (Section~6.13.4), and it is tuned only after $\mathrm{FSR}$ has been selected and frozen, so the selection of $\mathrm{FSR}$ does not depend on the value optimization chooses. Neither depth implies a post-union truncation: $\mathcal{C}_t$ is the complete deduplicated union of Eq.~(9), so its size varies with $m$ and with the overlap between the $m+1$ lists, and the mean and maximum $|\mathcal{C}_t|$ are reported for every dataset.
 
 The fixed embedding model and cosine similarity are also configuration choices, not learned GAR hyperparameters.
 
@@ -1256,7 +1274,7 @@ Therefore the experiment has no GAR training stage.
 
 If a baseline uses an official pretrained checkpoint, we use that checkpoint rather than retraining it on the evaluation data.
 
-The benchmark training split may be used for auxiliary development or baseline-specific training only if required by the official implementation. Any such use must be documented and must not use test annotations.
+The benchmark training split may be used for auxiliary development or baseline-specific training only if required by the official implementation. Any such use must be documented, must not use test annotations, and follows the protocol of Section~\ref{sec:baseline-protocol}.
 
 For GAR itself:
 
@@ -1274,7 +1292,7 @@ We define:
 \boxed{D_{\mathrm{val}}=\text{the held-out development/validation split}.}
 \]
 
-Where an official development split exists, we use it. The exact files and split names are recorded for each dataset.
+Where an official development split exists, we use it; where the official test annotations are withheld, the development split is divided into a validation half and a test half as described in Section~7.10. The exact files and split names are recorded for each dataset.
 
 GAR hyperparameters are selected using the \emph{complete MIGRES+FSR+GAR pipeline} on $D_{\mathrm{val}}$.
 
@@ -1457,7 +1475,7 @@ Official repository:
 
 \textbf{Paper:} \citet{kwiatkowski-etal-2019-natural}.
 
-Natural Questions consists of real anonymized queries issued to Google Search and Wikipedia-based annotations. The public release contains 307,373 training examples, 7,830 development examples, and 7,842 sequestered test examples \citep{kwiatkowski-etal-2019-natural}.
+Natural Questions consists of real anonymized queries issued to Google Search and Wikipedia-based annotations. The public release contains about 307K training examples, 7,830 development examples, and 7,842 sequestered test examples \citep{kwiatkowski-etal-2019-natural}. The exact training count is reported as 307,373 in the paper and in the data-statistics section of the official repository, while the repository's data-description paragraph gives 307,372; the count of the downloaded release is recorded in the experiment configuration.
 
 Typical fields include a question, Wikipedia page information, long-answer annotations, short-answer annotations, and document-level information.
 
@@ -1506,7 +1524,7 @@ Official resources:
 WikiHop & $\sim$51K & Multi-document, multi-hop reasoning.\\
 HotpotQA & $\sim$113K & Multi-hop QA with sentence-level supporting facts; FullWiki retrieval.\\
 MuSiQue & $\sim$25K & 2--4 hop compositional reasoning.\\
-Natural Questions & 307,373 train; 7,830 dev; 7,842 test & Real search questions with Wikipedia annotations.\\
+Natural Questions & $\sim$307K train; 7,830 dev; 7,842 test (withheld) & Real search questions with Wikipedia annotations.\\
 TriviaQA & $\sim$95K QA pairs; $>$650K evidence triples & Heterogeneous evidence and lexical variation.\\
 StrategyQA & 2,780 & Implicit reasoning with evidence paragraphs.\\
 \bottomrule
@@ -1561,7 +1579,9 @@ D_{\mathrm{test}}
 
 is used only for the final evaluation.
 
-If an official public test set has hidden answers, its evaluation follows the dataset's official evaluation procedure.
+\textbf{Labelled test data.} The retrieval metrics of this project (Recall, Precision, MRR, nDCG, GapEvidenceCoverage, and $\mathrm{CandRecall}$) need ground-truth evidence annotations, and these are withheld for some official test sets. For Natural Questions the 7,842 test examples are withheld and can only be scored through the official competition site, and the HotpotQA FullWiki test set is released without answers or supporting facts. This is checked for every dataset and recorded in the experiment configuration. For any dataset whose official test annotations are unavailable, $D_{\mathrm{val}}$ and $D_{\mathrm{test}}$ are two disjoint, question-level halves of the labelled official development split, divided once with a recorded seed before any experiment is run. Neither half is used to train or tune any system except $D_{\mathrm{val}}$ for the selections described in Section~\ref{sec:e1} and Section~6.13, and the official training split may be used only for baseline-specific training under Section~\ref{sec:baseline-protocol}. All retrieval metrics and all confirmatory tests are computed on this labelled $D_{\mathrm{test}}$.
+
+Official hidden-test evaluation is optional. If it is performed, it yields only the end-to-end answer metrics returned by the official evaluation procedure (no retrieval metrics), is run once per system with the frozen configuration, and is reported separately rather than pooled with the labelled $D_{\mathrm{test}}$ analyses.
 
 % ============================================================
 \section{Experimental Design and Analysis}
@@ -1618,17 +1638,21 @@ These methods are compared \emph{only} as candidate-generation (first-stage) ret
 \item the same dataset split ($D_{\mathrm{val}}$ of each dataset);
 \item the same questions;
 \item the same searchable corpus $\mathcal{D}$;
-\item the same retrieval depth $K_0$: every system returns its top $K_0^{\mathrm{E1}}=500$ documents, the largest value of the grid of Section~\ref{sec:e4}, so that recall at every shallower depth $\{50,100,200\}$ is obtained by truncating the same ranked list;
+\item the same per-query retrieval depth: every system returns its top $500$ documents for each query, the largest value of the grid of Section~\ref{sec:e4}, so that every shallower depth $\{50,100,200\}$ is obtained by truncating the same ranked list. The depth used for \emph{selection} is fixed in advance as $K_0^{\mathrm{sel}}=100$ (the grid value nearest the middle of the range); it is not tuned on any result, and it is distinct from the $K_0$ later tuned for GAR (Section~5.8);
 \item GAR is not used in this experiment, and no MIGRES reranking is applied;
 \item gold answers and gold supporting evidence are never used during retrieval; they are used only to score the returned lists.
 \end{itemize}
-As stated in Section~2, E1 is a question-only experiment: each retriever is run on $q$ alone, so its output is not equivalent to the gap-aware candidate generation of Eq.~(9).
+\textbf{Candidate construction and reference trajectory.} E1 follows the same candidate-construction procedure as the main experiment. For every $D_{\mathrm{val}}$ question, MIGRES with its original retriever (BM25) and no reranking is run once, and $(q,E_t,G_t)$ is stored for every iteration $t$; no LLM call is repeated per candidate retriever. Each candidate retriever $\rho$ then builds
+\[
+\mathcal{C}_t^{\rho}=\rho_{K_0}(q,\mathcal{D})\cup\bigcup_{i=1}^{m}\rho_{K_0}(g_i,\mathcal{D})
+\]
+(Eq.~(9)) from these stored queries, with duplicates removed and no further truncation. Because the stored gaps come from a trajectory produced with BM25 retrieval, this design may favour lexical retrievers slightly; the reference trajectory is recorded so this can be inspected. E1 also reports the question-only ranking $\rho_{K_0}(q,\mathcal{D})$ and the mean and maximum pool size $|\mathcal{C}_t^{\rho}|$ as diagnostics; only the union measurement is used for selection.
 
-\textbf{Retrieval-quality metrics.} A common metric suite is applied to every system: Recall@$k$; MRR@10; nDCG@10; and Precision@$k$, wherever the dataset annotations support binary relevance. Recall@$k$ is reported at the final depth $k$ and at each depth in $\{50,100,200,500\}$. Definitions are given in Section~\ref{sec:metric-defs}.
+\textbf{Retrieval-quality metrics.} The selection metric is $\mathrm{CandRecall}@K_0^{\mathrm{sel}}$. For reference, the question-only ranking of every system is also scored with Recall@$k$; MRR@10; nDCG@10; and Precision@$k$, wherever the dataset annotations support binary relevance. Recall@$k$ is reported at the final depth $k$ and at each depth in $\{50,100,200,500\}$. Definitions are given in Section~\ref{sec:metric-defs}.
 
 \textbf{Cost measurements.} For each system we also report retrieval latency per query, indexing time, index memory, and the number of retrieved candidates ($K_0^{\mathrm{E1}}$), on the same recorded hardware.
 
-\textbf{Selection rule.} The primary purpose of E1 is to select $\mathrm{FSR}$ on $D_{\mathrm{val}}$. The system with the highest macro-averaged (across the six datasets) Recall@$k$ on $D_{\mathrm{val}}$ is selected; this is the same primary metric used for GAR's own validation objective (Section~6.13.4) and it is chosen because candidate generation must not lose the evidence that later stages need. If two systems tie at the reported precision, the tie is broken by macro-averaged nDCG@10, and then by lower latency. The selected system is frozen as $\mathrm{FSR}$ and used unchanged in E2--E5.
+\textbf{Selection rule.} The primary purpose of E1 is to select $\mathrm{FSR}$ on $D_{\mathrm{val}}$. The system with the highest macro-averaged (across the six datasets) candidate-pool recall $\mathrm{CandRecall}@K_0^{\mathrm{sel}}$ on $D_{\mathrm{val}}$ (Section~\ref{sec:metric-defs}) is selected; it is chosen because candidate generation must not lose the evidence that later stages need, and it measures exactly the candidate set $\mathcal{C}_t$ that every reranker will receive. Because a larger pool trivially raises recall, the mean pool size is reported next to it. If two systems tie at the reported precision, the tie is broken by smaller mean pool size, and then by lower latency. The selected system is frozen as $\mathrm{FSR}$ and used unchanged in E2--E5.
 
 \textbf{What E1 does and does not show.} E1 does \emph{not} test GAR and is not evidence that GAR is effective. It only determines the fixed retrieval substrate on which the reranking study is run.
 
@@ -1648,6 +1672,8 @@ As stated in Section~2, E1 is a question-only experiment: each retriever is run 
 The no-reranking control ranks $\mathcal{C}_t$ by the fused score $\max\big(\mathrm{FSR}(d,q),\max_i \mathrm{FSR}(d,g_i)\big)$ (Section~6.4). Each reranker is used in the form described in Section~3, including the adaptations of AIR and RankGPT to the common candidate set. Every reranker outputs a complete ordering of $\mathcal{C}_t$ (the greedy methods MMR, AIR, and Dartboard/RIG continue their selection until $\mathcal{C}_t$ is exhausted).
 
 \textbf{Matched-state retrieval evaluation.} Because $(E_t,G_t)$ depend on the documents returned in earlier iterations, live runs of different rerankers diverge after the first iteration and would then no longer reorder the same $\mathcal{C}_t$. To enforce identical inputs, the \emph{retrieval} metrics of E2--E4 are computed in matched-state mode: the MIGRES$+\mathrm{FSR}$ (no reranking) run is recorded once per question, storing $(q,E_t,G_t,\mathcal{C}_t)$ for every iteration $t$; each system then reorders exactly this stored $\mathcal{C}_t$, and the metrics are computed on its ordering. The \emph{downstream} metrics are computed in live mode: each system is run end to end inside MIGRES with only the reranking method replaced. Retrieval metrics are also logged in the live runs as a secondary analysis. Each retrieval call (question $i$, iteration $t$) yields one ranked list and one score per metric; the score of question $i$ is the mean over its iterations, and the question is the unit of analysis in all statistics (Section~\ref{sec:stats}).
+
+\textbf{Retrieval metrics over iterations.} The primary retrieval metrics are \emph{per-iteration}: at each iteration $t$ they are computed on the system's ordering of $\mathcal{C}_t$ against the full set of ground-truth relevant evidence, and evidence found at earlier iterations is not removed from that set. The per-iteration scores are then averaged over the iterations of the question. In matched-state mode the number of iterations is the one recorded in the no-reranking run, for every system. As a secondary \emph{cumulative} measure, we also report Recall over the union of the top-$k$ lists returned across all iterations, in which a document returned in several iterations is counted once. In the live runs the iterations actually performed by each system are used, so live retrieval metrics are not paired at the iteration level.
 
 \textbf{Primary ranking metrics.} All twelve systems are evaluated with the same metrics,
 \[
@@ -1807,7 +1833,7 @@ Each hypothesis corresponds to one experiment. None predicts a numerical improve
 
 \textbf{H8 --- Candidate-pool sensitivity (E4).} GAR performance changes as $K_0$ changes, with larger candidate pools potentially increasing computational cost.
 
-\textbf{Operationalization.} H1: pairwise differences among the five retrievers on $D_{\mathrm{val}}$. H2: GAR vs.\ $\mathrm{FSR}$ on Recall@$k$. H3: GAR vs.\ each reranker on Recall@$k$. H4: GAR vs.\ $\mathrm{FSR}$ on the official answer metric, and the association between per-question retrieval change and per-question answer-metric change (Section~\ref{sec:stats}). H5: Full GAR vs.\ $S_{-C}$ on GapEvidenceCoverage@$k$ and on Recall@$k$; supported if a decrease is established on at least one of them. H6: Full GAR vs.\ $S_{-N}$; supported if $S_{-N}$ has higher Redundancy@$k$ (Section~\ref{sec:metric-defs}) \emph{and} lower Recall@$k$ or lower GapEvidenceCoverage@$k$. H7: Full GAR vs.\ $S_{-R}$ on MRR@10 and nDCG@10, together with Recall@$k$. H8: GAR on $D_{\mathrm{val}}$ at each $K_0$ against the selected $K_0$, together with the measured reranking cost.
+\textbf{Operationalization.} H1: pairwise differences among the five retrievers on $D_{\mathrm{val}}$, on $\mathrm{CandRecall}@K_0^{\mathrm{sel}}$. H2: GAR vs.\ $\mathrm{FSR}$ on Recall@$k$. H3: GAR vs.\ each reranker on Recall@$k$. H4: GAR vs.\ $\mathrm{FSR}$ on the official answer metric, and the association between per-question retrieval change and per-question answer-metric change (Section~\ref{sec:stats}). H5: Full GAR vs.\ $S_{-C}$ on GapEvidenceCoverage@$k$ and on Recall@$k$; supported if a decrease is established on at least one of them. H6: Full GAR vs.\ $S_{-N}$; supported if $S_{-N}$ has higher Redundancy@$k$ (Section~\ref{sec:metric-defs}) \emph{and} lower Recall@$k$ or lower GapEvidenceCoverage@$k$. H7: Full GAR vs.\ $S_{-R}$ on MRR@10 and nDCG@10, together with Recall@$k$. H8: GAR on $D_{\mathrm{val}}$ at each $K_0$ against the selected $K_0$, together with the measured reranking cost.
 
 % ------------------------------------------------------------
 \subsection{Primary and Secondary Metrics}
@@ -1821,7 +1847,7 @@ Each hypothesis corresponds to one experiment. None predicts a numerical improve
 \toprule
 \textbf{Evaluation level} & \textbf{Primary metrics} & \textbf{Secondary metrics}\\
 \midrule
-First-stage retrieval & Recall@$k$, MRR@10, nDCG@10 & Precision@$k$, latency\\
+First-stage retrieval & $\mathrm{CandRecall}@K_0^{\mathrm{sel}}$ (Eq.~(9) pool) & Question-only Recall@$k$, MRR@10, nDCG@10; mean pool size; latency\\
 Reranking & Recall@$k$, MRR@10, nDCG@10 & Precision@$k$, GapEvidenceCoverage@$k$\\
 Downstream QA & Official dataset answer metric & EM, F1, accuracy, supporting-fact quality where applicable\\
 Efficiency & End-to-end latency & Memory, indexing time, documents scored, tokens, API cost\\
@@ -1888,6 +1914,9 @@ Recall@k
 }
 \]
 Benchmarks used here provide at least one relevant-evidence item per question, so this denominator is not expected to be zero in practice; if an instance with no annotated relevant evidence does occur, that instance is excluded from the Recall@$k$ average (for all systems alike) rather than reported as $0/0$.
+
+\paragraph{Candidate-pool recall (E1 only).}
+$\mathrm{CandRecall}@K_0$ is the fraction of ground-truth relevant evidence contained in the full candidate set $\mathcal{C}_t^{\rho}$ built by Eq.~(9) at per-query depth $K_0$ for a candidate retriever $\rho$ (Section~\ref{sec:e1}); it is computed per iteration and averaged over the iterations of a question, and the same exclusion rule for questions without annotated evidence applies. It is a property of an unordered set, so it is not a ranking metric.
 
 \paragraph{Precision@$k$.}
 \[
@@ -2013,7 +2042,7 @@ S7 & Full GAR vs.\ $GAR_{R\text{-only}}$ & Recall@$k$ & (E3) & 1\\
 \label{tab:tests}
 \end{table}
 
-\textbf{Validation-set analyses.} E1 and E4 are run on $D_{\mathrm{val}}$ and are used for selection and sensitivity, not for confirmatory claims. For H1, the ten pairwise contrasts among the five retrievers are tested two-sided on Recall@$k$ with Holm correction. For H8, GAR at each $K_0\in\{50,100,200,500\}$ is compared with GAR at the selected $K_0$ on Recall@$k$ (Holm over the three contrasts), and curves with 95\% intervals are reported for all E4 metrics.
+\textbf{Validation-set analyses.} E1 and E4 are run on $D_{\mathrm{val}}$ and are used for selection and sensitivity, not for confirmatory claims. For H1, the ten pairwise contrasts among the five retrievers are tested two-sided on $\mathrm{CandRecall}@K_0^{\mathrm{sel}}$ with Holm correction. For H8, GAR at each $K_0\in\{50,100,200,500\}$ is compared with GAR at the selected $K_0$ on Recall@$k$ (Holm over the three contrasts), and curves with 95\% intervals are reported for all E4 metrics.
 
 \textbf{Association for H4.} In addition to S3, we report the Spearman rank correlation between the per-question change in Recall@$k$ (GAR minus $\mathrm{FSR}$) and the per-question change in the official answer metric, with a 95\% bootstrap interval. It is descriptive and reported as an association, not a causal claim.
 
@@ -2040,7 +2069,7 @@ The following remain fixed across all systems:
 \item evaluation scripts;
 \item random seeds where applicable.
 \end{itemize}
-For the main reranking comparison, only the reranking method changes. Ground-truth answers and evidence are never used to construct $G_t$, $E_t$, or $\mathcal{C}_t$. Any baseline-specific training or hyperparameter setting is documented, uses no test annotations, and is fixed before $D_{\mathrm{test}}$ is run. Where a component is stochastic (for example an LLM-based reranker), its sampling settings and seeds are fixed in advance and recorded. The candidate-pool depth $K_0$ is validation-selected for GAR and shared with all baselines, which is a limitation of the comparison discussed in Section~6.13.5.
+For the main reranking comparison, only the reranking method changes. Ground-truth answers and evidence are never used to construct $G_t$, $E_t$, or $\mathcal{C}_t$. Any baseline-specific training or hyperparameter setting follows the protocol of Section~\ref{sec:baseline-protocol}, is documented, uses no test annotations, and is fixed before $D_{\mathrm{test}}$ is run. Where a component is stochastic (for example an LLM-based reranker), its sampling settings and seeds are fixed in advance and recorded. The candidate-pool depth $K_0$ is validation-selected for GAR and shared with all baselines, which is a limitation of the comparison discussed in Section~6.13.5.
 
 We record exact model checkpoints, library versions, hardware, retrieval parameters, and reranker configurations, as listed below.
 
@@ -2054,7 +2083,13 @@ Dataset & Exact release and split\\
 Corpus & Exact corpus version\\
 First-stage retriever ($\mathrm{FSR}$) & Selected empirically by E1 (Section~\ref{sec:e1}); fixed for all systems thereafter\\
 Reranker & None / MonoBERT / MonoT5 / DuoBERT / ColBERTv2 / LambdaMART / RankT5 / MMR / AIR / Dartboard-RIG / RankGPT / GAR\\
-Baseline checkpoint and configuration & Exact model/checkpoint and hyperparameters\\
+Baseline checkpoint and configuration & Exact model/checkpoint and hyperparameters, per Section~\ref{sec:baseline-protocol}\\
+Adapted baselines & AIR, Dartboard/RIG, RankGPT adaptations as recorded\\
+$\mathrm{FSR}$ selection depth $K_0^{\mathrm{sel}}$ & $100$ (pre-specified, not tuned)\\
+E1 reference trajectory & Recorded MIGRES+BM25 run of $(q,E_t,G_t)$ on $D_{\mathrm{val}}$\\
+$D_{\mathrm{val}}$ / $D_{\mathrm{test}}$ construction & Official splits, or seeded halves of the dev split where test labels are withheld\\
+Text preprocessing for $\tau(\cdot)$ & NFKC, lowercase, \texttt{\textbackslash w+} tokens, NLTK stopwords, Porter stemming\\
+Embedding input length & 512 word pieces, tail truncation; truncation rate reported\\
 GAR embedding model & \texttt{multi-qa-mpnet-base-cos-v1}\\
 Final retrieval depth $k$ & Fixed value for all systems\\
 FSR retrieval depth $K_0$ (per query) & Validation-selected GAR value\\
