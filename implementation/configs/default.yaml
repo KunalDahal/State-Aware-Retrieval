@@ -1,0 +1,80 @@
+# DEFAULT configuration = the thesis setup (methodology.tex, Tables 5.1 / 6.1):
+#   embedder  sentence-transformers/multi-qa-mpnet-base-cos-v1 (768-d)
+#   store     Pinecone (persistent)
+#   LLM       Gemini API - the exact model id is NOT defaulted; set llm.model or export LLM_MODEL
+#   MIGRES    the official AdelWang/MIGRES code (clone it and set MIGRES_REPO_DIR)
+#
+# Secrets are read ONLY from environment variables (see .env.example).
+embedding:
+  type: sentence_transformer
+  model_name: sentence-transformers/multi-qa-mpnet-base-cos-v1
+  expected_dim: 768
+  batch_size: 64
+  device: ""                    # "" = auto (CUDA if available)
+  embed_template: "{title}. {text}"   # how a document is turned into the embedded string
+
+vector_store:
+  type: pinecone
+  pinecone_index: sar-migres
+  pinecone_namespace: ""
+  pinecone_cloud: aws
+  pinecone_region: us-east-1
+  pinecone_api_key_env: PINECONE_API_KEY
+  pinecone_create_if_missing: true
+  on_cache_corruption: rebuild
+
+sar:
+  # DEVELOPMENT PLACEHOLDERS - NOT tuned, NOT optimal. The thesis selects alpha/beta/gamma by
+  # Bayesian optimisation on validation data (October stage). Must satisfy alpha+beta+gamma = 1.
+  alpha: 0.4
+  beta: 0.3
+  gamma: 0.3
+  k: 5                          # configurable per experiment; chosen from predefined values on validation data later
+  weighting: static             # dynamic = FUTURE experiment (not implemented)
+  chunk_size: 50000
+
+llm:
+  provider: gemini              # gemini | openai | offline_deterministic
+  model: ""                     # REQUIRED for real runs: set here or via env LLM_MODEL
+  model_env: LLM_MODEL
+  api_key_env: ""               # "" -> GEMINI_API_KEY / OPENAI_API_KEY by provider
+  temperature: 0.0
+  max_retries: 5
+  timeout_s: 120
+
+migres:
+  backend: upstream             # official code, loaded from a local clone (MIGRES_REPO_DIR)
+  repo_dir: ""                  # or env MIGRES_REPO_DIR
+  max_iter: 5                   # upstream migres.sh: MAX_ITER=5
+  top_k: 5                      # upstream migres.sh: TOPK=5 (passages per MIGRES prompt)
+  relevance: 3.0                # upstream migres.sh: RELEVANCE=3.0 (cross-encoder filter threshold)
+  reranker: upstream_cross_encoder
+  ranker_model_path: BAAI/bge-reranker-base
+  entail_judge: false           # upstream migres.sh enables it (T5-XXL NLI, ~11B params); off by default here, see README
+  gpt_knowledge: true           # upstream migres.sh flag --gpt_knowledge
+  num_return: 1
+  gap_source: queries           # how MIGRES state maps to G_t: queries | missing_info | both
+  strict_upstream_hash: false
+
+data:
+  corpus_path: data/processed/corpus.jsonl
+  corpus_lazy: false
+  max_malformed_fraction: 0.01
+  dataset: hotpotqa             # wikihop | hotpotqa | musique | natural_questions | triviaqa | strategyqa | jsonl
+  dataset_path: data/raw/hotpot.json
+  limit: 20
+
+run:
+  seed: 13
+  output_dir: outputs
+  name: sar_migres
+  log_level: INFO
+  resume: false
+  cache_root: data/cache
+
+# ---- FUTURE / OCTOBER modules: all disabled, nothing reads these yet ----
+future:
+  evaluation: {enabled: false}
+  bayesian_optimization: {enabled: false}
+  baselines: {enabled: false}
+  rgb: {enabled: false}

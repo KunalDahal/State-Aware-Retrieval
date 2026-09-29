@@ -1,0 +1,23 @@
+# Full environment for REAL runs (Pinecone + Sentence Transformers + Gemini/OpenAI + official MIGRES filter).
+# Bounded ranges; the exact versions of the thesis table (Python 3.14.7, torch 2.13.0, ST 5.6.1,
+# Pinecone 9.1.0, bayes-opt 3.3.0) all exist on PyPI and fall inside these ranges, but see README
+# "Compatibility decisions": only the OFFLINE path (numpy + PyYAML) was executed in development.
+numpy>=1.26,<3
+PyYAML>=6,<7
+sentence-transformers>=5.6.1,<7
+torch>=2.13,<3
+transformers>=4.50,<6
+pinecone>=9.1,<11
+google-genai>=2,<3
+openai>=3,<4
+nltk>=3.9
+scikit-learn>=1.4
+scipy>=1.11
+tqdm>=4.66
+bayesian-optimization>=3.3,<4     # October stage
+pandas>=2                         # notebook tables
+jupyter>=1.0
+ipykernel>=6
+pytest>=8
+nbformat>=5
+nbclient>=0.10

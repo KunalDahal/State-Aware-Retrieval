@@ -1,0 +1,8 @@
+# Minimal environment: offline smoke test + unit tests. No API keys, no downloads, no GPU.
+numpy>=1.26,<3
+PyYAML>=6,<7
+pytest>=8
+nbformat>=5
+nbclient>=0.10
+ipykernel>=6
+bayesian-optimization>=3.3,<4

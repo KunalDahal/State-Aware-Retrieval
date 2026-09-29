@@ -1,0 +1,42 @@
+# Experiment definitions for the OCTOBER stage (methodology Sec. 5.5-5.6).
+# STATUS: PLANNED / DISABLED. This file describes what will be run; no experiment listed
+# here has been executed and no result is claimed. Load it with yaml.safe_load; the current
+# code base only exposes the interfaces (see evaluation.py, baselines.py, optimization.py).
+status: planned_not_executed
+
+datasets: [wikihop, hotpotqa, musique, natural_questions, triviaqa, strategyqa]
+splits:
+  tuning: validation          # alpha/beta/gamma and K selected on validation data only
+  final: test                 # configuration frozen before test evaluation
+
+bayesian_optimization:
+  enabled: false
+  parameterisation: simplex_uv   # u,v in [0,1]; alpha=u, beta=(1-u)v, gamma=(1-u)(1-v)  (sum = 1 by construction)
+  init_points: 5
+  n_iter: 25
+  seed: 13
+  objective: null                # to be defined on validation data (e.g. retrieval or answer metric)
+
+k_grid: [3, 5, 10]               # "predefined values" - placeholders until the study fixes them
+
+weighting_modes:
+  static:  {enabled: false}
+  dynamic: {enabled: false, rule: null}   # rule not specified in methodology.tex
+
+ablations:                       # Sec. 5.6.3
+  enabled: false
+  variants: [SAR-Full, SAR-Without-Relevance, SAR-Without-Gap, SAR-Without-Evidence, Question-Only]
+
+baselines:                       # Table 5.6
+  enabled: false
+  systems: [bm25, dpr, contriever, splade, colbertv2, sentence_transformer_search]
+
+metrics:
+  retrieval: [recall_at_k, precision_at_k, hit_at_k, mrr, ndcg_at_k]   # only those supported by a dataset's ground truth
+  iterative: [cumulative_recall, marginal_recall_gain, new_document_rate, retrieval_overlap]
+  answer: [exact_match, accuracy, token_f1]
+  cost: [retrieval_latency, documents_scored, similarity_calculations, retrieval_overhead_pct, memory]
+
+rgb:                             # Sec. 5.6.6
+  enabled: false
+  settings: [noise_robustness, negative_rejection, information_integration, counterfactual_robustness]
