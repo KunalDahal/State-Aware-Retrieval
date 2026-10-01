@@ -37,12 +37,10 @@ class MockBackend(MigresBackend):
 
 
 FAKE_OPENAI = "sk-" + "fixture-not-a-real-key-000111"      # assembled at runtime: fake, never a real credential
-FAKE_PINECONE = "pc" + "sk_" + "fixture_not_a_real_key_000111"
 
 
 def test_full_local_pipeline_with_mocked_backend(tmp_path, monkeypatch):
     monkeypatch.setenv("OPENAI_API_KEY", FAKE_OPENAI)
-    monkeypatch.setenv("PINECONE_API_KEY", FAKE_PINECONE)
     cfg = cfg_for(tmp_path)
     pipe = SARMigresPipeline(cfg, backend=MockBackend(), llm=ScriptedLLM(lambda p: "x")).prepare()
     items = [json.loads(l) for l in (ROOT / "data/sample/questions.jsonl").read_text().splitlines()]
@@ -53,7 +51,7 @@ def test_full_local_pipeline_with_mocked_backend(tmp_path, monkeypatch):
         assert (run / name).exists(), name
     meta = json.loads((run / "metadata.json").read_text())
     assert meta["status"] == "completed" and meta["corpus"]["version"] and meta["embedder"].startswith("hashing")
-    assert any("LEXICAL HASHING" in w for w in meta["warnings"])
+    assert any("non-semantic hashing" in w for w in meta["warnings"])
     t0 = json.loads((run / "traces.jsonl").read_text().splitlines()[0])
     for key in ("question", "iteration", "gaps", "evidence", "alpha", "beta", "gamma", "k", "documents", "total_seconds"):
         assert key in t0
@@ -67,7 +65,7 @@ def test_full_local_pipeline_with_mocked_backend(tmp_path, monkeypatch):
     for f in run.rglob("*"):  # no secret VALUE may appear in any output file (env var *names* are fine)
         if f.is_file():
             txt = f.read_text(errors="ignore")
-            assert FAKE_OPENAI not in txt and FAKE_PINECONE not in txt, f
+            assert FAKE_OPENAI not in txt, f
 
 
 def test_offline_standin_backend_end_to_end(tmp_path):
@@ -116,10 +114,13 @@ def test_mocked_vector_store_and_embedder_injection(tmp_path):
     assert r.traces[0].n_docs_scored == 6
 
 
-def test_dynamic_weighting_refused_as_future(tmp_path):
+def test_dynamic_weighting_requires_explicit_rule_and_then_runs(tmp_path):
     from sar_migres.errors import ConfigError
     with pytest.raises(ConfigError):
         SARMigresPipeline(cfg_for(tmp_path, sar={"weighting": "dynamic"}))
+    cfg = cfg_for(tmp_path, sar={"weighting": "dynamic", "dynamic_rule": "state_balanced_v1"})
+    pipe = SARMigresPipeline(cfg, backend=MockBackend(), llm=ScriptedLLM(lambda p: "x")).prepare()
+    assert pipe.cfg.sar.dynamic_rule == "state_balanced_v1"
 
 
 def test_derive_gaps_mapping():
@@ -136,3 +137,25 @@ def test_run_single_writes_full_artefacts(tmp_path):
     for name in ("config_snapshot.json", "metadata.json", "results.jsonl", "traces.jsonl", "traces.csv", "summary.csv", "report.md"):
         assert (pipe.run_dir / name).exists(), name
     assert json.loads((pipe.run_dir / "metadata.json").read_text())["status"] == "completed"
+
+
+def test_mmr_baseline_replaces_sar_stack_without_sentence_transformer(tmp_path):
+    cfg = cfg_for(tmp_path, retrieval={"method": "mmr"}, baseline={"k": 2})
+    pipe = SARMigresPipeline(cfg, backend=MockBackend(), llm=ScriptedLLM(lambda p: "x")).prepare()
+    result = pipe.run_question({"id": "m1", "question": "What is the capital of France?", "answer": "Paris"})
+    assert len(result.traces) == 2
+    assert all(t.retriever == "mmr" and not t.is_sar for t in result.traces)
+    assert pipe.retriever.__class__.__name__ == "MMRBaseline"
+    assert pipe.embedder is None
+
+
+def test_bm25_baseline_replaces_sar_stack_but_stays_in_same_loop(tmp_path):
+    cfg = cfg_for(tmp_path, retrieval={"method": "bm25"}, baseline={"k": 2})
+    pipe = SARMigresPipeline(cfg, backend=MockBackend(), llm=ScriptedLLM(lambda p: "x")).prepare()
+    item = {"id": "b1", "question": "What is the capital of France?", "answer": "Paris"}
+    result = pipe.run_question(item)
+    assert len(result.traces) == 2
+    assert all(t.retriever == "bm25" and not t.is_sar for t in result.traces)
+    assert pipe.retriever.__class__.__name__ == "BM25Baseline"
+    assert pipe.embedder is None  # non-ST baseline never constructs the SAR Sentence Transformer stack
+    assert result.traces[1].gaps == ["who founded it?"]

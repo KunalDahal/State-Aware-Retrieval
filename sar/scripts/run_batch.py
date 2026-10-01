@@ -14,7 +14,7 @@ def main():
     cfg = load(a)
     pipe = SARMigresPipeline(cfg, run_id=a.run_id).prepare()
     from sar_migres.datasets import load_questions
-    items = load_questions(cfg.data.dataset, cfg.data.dataset_path, a.limit or cfg.data.limit)
+    items = load_questions(cfg.data.dataset, cfg.data.dataset_path, a.limit or cfg.data.limit, split=cfg.data.split)
     res = pipe.run_batch(items, resume=a.resume or cfg.run.resume)
     print(f"finished {len(res)} question(s) this session; outputs in {pipe.run_dir}")
 

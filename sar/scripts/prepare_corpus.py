@@ -1,42 +1,35 @@
-#!/usr/bin/env python
-"""Validate/normalise a corpus into data/processed/corpus.jsonl (id, title, text).
 
-Sources
-  --from-file PATH          JSONL/JSON/TSV in MIGRES/DPR layout (id, title, text|contents). Malformed rows are reported.
-  --from-dataset NAME PATH  build a DEVELOPMENT corpus from the per-question contexts of hotpotqa / wikihop / musique.
-                            (This is NOT the Wikipedia dump that MIGRES retrieves from - see data/README.md.)
-"""
-import json
-from _common import ROOT, base_parser, load
+#!/usr/bin/env python3
+"""Build the bounded pooled training corpus D used by SAR and all retriever baselines."""
+from __future__ import annotations
+import argparse
+import sys
+from pathlib import Path
 
-from sar_migres.corpus import Corpus
-from sar_migres.datasets import contexts_to_documents, load_questions
-from sar_migres.utils import atomic_write_text
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
+from sar_migres.corpus_builder import build_pooled_corpus
 
+p = argparse.ArgumentParser()
+p.add_argument("--dataset", action="append", default=[], metavar="NAME=PATH", help="repeat for each of the six datasets")
+p.add_argument("--output", default="data/processed/pooled_train_corpus.jsonl")
+p.add_argument("--source-split", default="train")
+p.add_argument("--max-documents", type=int, default=100000)
+p.add_argument("--max-tokens", type=int, default=350)
+p.add_argument("--overlap-tokens", type=int, default=50)
+p.add_argument("--tokenizer", default="sentence-transformers/multi-qa-mpnet-base-cos-v1")
+args = p.parse_args()
 
-def main():
-    ap = base_parser(__doc__)
-    ap.add_argument("--from-file")
-    ap.add_argument("--from-dataset", nargs=2, metavar=("NAME", "PATH"))
-    ap.add_argument("--out", default=str(ROOT / "data" / "processed" / "corpus.jsonl"))
-    ap.add_argument("--limit-questions", type=int, default=None)
-    a = ap.parse_args()
-    cfg = load(a)
-    if bool(a.from_file) == bool(a.from_dataset):
-        ap.error("give exactly one of --from-file / --from-dataset")
-    if a.from_file:
-        corpus = Corpus.from_file(a.from_file, embed_template=cfg.embedding.embed_template,
-                                  max_malformed_fraction=cfg.data.max_malformed_fraction)
-        docs = corpus.get_many(corpus.ids)
-    else:
-        name, path = a.from_dataset
-        recs = load_questions(name, path, a.limit_questions)
-        docs = list(contexts_to_documents(name, recs))
-        corpus = Corpus.from_documents(docs, cfg.embedding.embed_template)
-    atomic_write_text(a.out, "\n".join(json.dumps({"id": d.doc_id, "title": d.title, "text": d.text}, ensure_ascii=False)
-                                       for d in docs) + "\n")
-    print(f"wrote {len(docs)} documents -> {a.out}\ncorpus version: {corpus.version}\nreport: {corpus.report.to_dict()}")
+if not args.dataset:
+    p.error("provide --dataset NAME=PATH at least once")
+files = {}
+for spec in args.dataset:
+    if "=" not in spec:
+        p.error(f"bad --dataset {spec!r}; use NAME=PATH")
+    n, path = spec.split("=", 1)
+    files[n] = path
 
-
-if __name__ == "__main__":
-    main()
+manifest = build_pooled_corpus(files, output=args.output, source_split=args.source_split,
+                               max_documents=args.max_documents, max_tokens=args.max_tokens,
+                               overlap_tokens=args.overlap_tokens, tokenizer_name=args.tokenizer)
+print(manifest)

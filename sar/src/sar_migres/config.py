@@ -1,10 +1,15 @@
-"""Configuration: YAML files -> typed dataclasses.  Secrets are NEVER stored here; the
-config only names the *environment variables* that hold them."""
+"""Typed configuration for the SAR-MIGRES experiments.
+
+The configuration deliberately separates SAR components from baseline retrievers.  SAR owns
+its Sentence Transformer + state-aware scoring, while baseline methods are drop-in retrievers
+that are fed into the same MIGRES iteration loop.
+"""
 from __future__ import annotations
 
 import copy
 import dataclasses
 import os
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -17,7 +22,6 @@ ENV_FILE_DEFAULT = ".env"
 
 
 def load_dotenv_file(path: str | os.PathLike = ENV_FILE_DEFAULT, override: bool = False) -> list[str]:
-    """Minimal .env reader (KEY=VALUE, '#' comments). Returns the *names* loaded (never values)."""
     p = Path(path)
     loaded: list[str] = []
     if not p.exists():
@@ -27,7 +31,12 @@ def load_dotenv_file(path: str | os.PathLike = ENV_FILE_DEFAULT, override: bool 
         if not line or line.startswith("#") or "=" not in line:
             continue
         k, v = line.split("=", 1)
-        k, v = k.strip(), v.strip().strip('"').strip("'")
+        k, v = k.strip(), v.strip()
+        if v[:1] in ('"', "'"):  # quoted value: take what is inside the quotes, ignore anything after
+            end = v.find(v[0], 1)
+            v = v[1:end] if end != -1 else v[1:]
+        else:  # unquoted: drop a trailing "  # comment"
+            v = re.split(r"\s+#", v, maxsplit=1)[0].strip()
         if v and (override or k not in os.environ):
             os.environ[k] = v
             loaded.append(k)
@@ -38,7 +47,7 @@ def load_dotenv_file(path: str | os.PathLike = ENV_FILE_DEFAULT, override: bool 
 class EmbeddingConfig:
     type: str = "sentence_transformer"  # sentence_transformer | hashing
     model_name: str = "sentence-transformers/multi-qa-mpnet-base-cos-v1"
-    device: str = ""  # "" = auto
+    device: str = ""
     batch_size: int = 64
     expected_dim: int | None = 768
     hashing_dim: int = 256
@@ -48,14 +57,8 @@ class EmbeddingConfig:
 
 @dataclass
 class VectorStoreConfig:
-    type: str = "pinecone"  # pinecone | local
-    on_cache_corruption: str = "rebuild"  # rebuild | raise
-    pinecone_index: str = "sar-migres"
-    pinecone_namespace: str = ""
-    pinecone_cloud: str = "aws"
-    pinecone_region: str = "us-east-1"
-    pinecone_api_key_env: str = "PINECONE_API_KEY"
-    pinecone_create_if_missing: bool = True
+    type: str = "local_memmap"  # local_memmap is the primary disk-backed exact-scoring store
+    on_cache_corruption: str = "rebuild"
     remove_missing: bool = True
 
     def local_dir_name(self, embedder_name: str) -> str:
@@ -68,18 +71,48 @@ class SARConfig:
     beta: float = 0.3
     gamma: float = 0.3
     k: int = 5
-    weighting: str = "static"  # static | dynamic (dynamic = FUTURE)
+    weighting: str = "static"  # static | dynamic
+    dynamic_rule: str = ""  # methodology does not define a rule; must be explicit to enable dynamic mode
     chunk_size: int = 50_000
-    # NOTE: default weights/K are DEVELOPMENT PLACEHOLDERS, not tuned or optimal values.
-    # The thesis selects alpha/beta/gamma by Bayesian optimisation on validation data (October stage).
+
+
+@dataclass
+class RetrievalConfig:
+    """Which retriever is plugged into MIGRES.
+
+    ``sar`` is the proposed method.  The other values are baseline retrievers from Table 5.6.
+    Only ``sentence_transformer_search`` needs the project Sentence Transformer embedder/store.
+    """
+
+    method: str = "sar"  # sar | bm25 | mmr | sentence_transformer_search | infogain_rag | dpr | contriever | splade | colbertv2
+
+
+@dataclass
+class BaselineConfig:
+    k: int = 5
+    cache_dir: str = "data/cache/baselines"
+    dpr_question_model: str = "facebook/dpr-question_encoder-single-nq-base"
+    dpr_context_model: str = "facebook/dpr-ctx_encoder-single-nq-base"
+    contriever_model: str = "facebook/contriever"
+    splade_model: str = "naver/splade-cocondenser-ensembledistil"
+    colbert_model: str = "colbert-ir/colbertv2.0"
+    batch_size: int = 16
+    max_length: int = 384
+    colbert_query_max_tokens: int = 32
+    colbert_doc_max_tokens: int = 180
+    score_chunk_size: int = 50_000
+    mmr_lambda: float = 0.6
+    mmr_candidate_multiplier: int = 10
+    infogain_checkpoint: str = ""
+    infogain_candidate_k: int = 50
 
 
 @dataclass
 class LLMConfig:
-    provider: str = "gemini"  # gemini | openai | offline_deterministic
-    model: str = ""  # or set env var named by model_env
+    provider: str = "gemini"
+    model: str = ""
     model_env: str = "LLM_MODEL"
-    api_key_env: str = ""  # "" -> provider default (GEMINI_API_KEY / OPENAI_API_KEY)
+    api_key_env: str = ""
     base_url_env: str = "OPENAI_BASE_URL"
     temperature: float = 0.0
     max_retries: int = 5
@@ -89,36 +122,55 @@ class LLMConfig:
 
 @dataclass
 class MigresConfig:
-    backend: str = "upstream"  # upstream (official AdelWang/MIGRES code) | standin (offline smoke test only)
-    repo_dir: str = ""  # or env MIGRES_REPO_DIR
+    backend: str = "upstream"
+    repo_dir: str = ""
     max_iter: int = 5
-    top_k: int = 5  # passages placed in each MIGRES prompt (upstream --top_k)
-    relevance: float = 3.0  # upstream reranker threshold delta (--relevance)
-    reranker: str = "upstream_cross_encoder"  # upstream_cross_encoder | offline_standin
-    ranker_model_path: str = "BAAI/bge-reranker-base"  # upstream default string is 'BAAI/bge-rerank-base' (unverified id)
+    top_k: int = 5
+    relevance: float = 3.0
+    reranker: str = "upstream_cross_encoder"
+    ranker_model_path: str = "BAAI/bge-reranker-base"
     sent_rerank: bool = False
-    entail_judge: bool = False  # upstream migres.sh enables it (needs google/t5_xxl_true_nli_mixture, ~11B params)
+    entail_judge: bool = False
     gpt_knowledge: bool = True
     add_demon: bool = False
     demon_path: str = ""
     num_return: int = 1
-    gap_source: str = "queries"  # queries | missing_info | both  (how MIGRES state maps to G_t)
+    gap_source: str = "queries"
     strict_upstream_hash: bool = False
 
 
 @dataclass
 class DataConfig:
-    corpus_path: str = "data/sample/corpus.jsonl"
-    corpus_lazy: bool = False
+    corpus_path: str = "data/processed/pooled_train_corpus.jsonl"
+    corpus_lazy: bool = True
     max_malformed_fraction: float = 0.01
-    dataset: str = "sample"  # sample | wikihop | hotpotqa | musique | natural_questions | triviaqa | strategyqa | jsonl
-    dataset_path: str = "data/sample/questions.jsonl"
+    dataset: str = "hotpotqa"
+    dataset_path: str = "data/raw/hotpot.json"
+    dataset_paths: dict[str, str] = field(default_factory=lambda: {
+        "wikihop": "data/raw/wikihop.json",
+        "hotpotqa": "data/raw/hotpot.json",
+        "musique": "data/raw/musique.json",
+        "natural_questions": "data/raw/nq.json",
+        "triviaqa": "data/raw/triviaqa.json",
+        "strategyqa": "data/raw/strategyqa.json",
+    })
+    datasets: list[str] = field(default_factory=lambda: ["wikihop", "hotpotqa", "musique", "natural_questions", "triviaqa", "strategyqa"])
     limit: int | None = None
+    split: str = "dev"
+    final_split: str = "dev"
+    validation_fraction: float = 0.10
+    validation_seed: int = 13
+    corpus_source_split: str = "train"
+    corpus_chunk_max_tokens: int = 350
+    corpus_chunk_overlap_tokens: int = 50
+    max_documents: int | None = 100_000
 
 
 @dataclass
 class RunConfig:
     seed: int = 13
+    statistics_seed: int = 13
+    bootstrap_resamples: int = 2000
     output_dir: str = "outputs"
     name: str = "sar_migres"
     log_level: str = "INFO"
@@ -132,21 +184,24 @@ class Config:
     embedding: EmbeddingConfig = field(default_factory=EmbeddingConfig)
     vector_store: VectorStoreConfig = field(default_factory=VectorStoreConfig)
     sar: SARConfig = field(default_factory=SARConfig)
+    retrieval: RetrievalConfig = field(default_factory=RetrievalConfig)
+    baseline: BaselineConfig = field(default_factory=BaselineConfig)
     llm: LLMConfig = field(default_factory=LLMConfig)
     migres: MigresConfig = field(default_factory=MigresConfig)
     data: DataConfig = field(default_factory=DataConfig)
     run: RunConfig = field(default_factory=RunConfig)
-    future: dict[str, Any] = field(default_factory=dict)  # FUTURE/October settings, disabled by default
+    future: dict[str, Any] = field(default_factory=dict)
 
     def snapshot(self) -> dict[str, Any]:
-        """Serialisable copy for storing next to run outputs (contains no secret values)."""
         return dataclasses.asdict(self)
 
     def resolve_llm_model(self) -> str:
         m = self.llm.model or os.environ.get(self.llm.model_env, "")
         if not m:
-            raise ConfigError(f"LLM model name not configured: set llm.model in the YAML or export {self.llm.model_env}. "
-                              "The model name is intentionally not defaulted (it must be one your provider supports).")
+            raise ConfigError(
+                f"LLM model name not configured: set llm.model in the YAML or export {self.llm.model_env}. "
+                "The model id is intentionally not guessed."
+            )
         return m
 
     def resolve_migres_repo(self) -> Path | None:
@@ -170,8 +225,17 @@ def _build(cls, d: dict, path: str):
 
 
 def config_from_dict(d: dict[str, Any]) -> Config:
-    sections = {"embedding": EmbeddingConfig, "vector_store": VectorStoreConfig, "sar": SARConfig,
-                "llm": LLMConfig, "migres": MigresConfig, "data": DataConfig, "run": RunConfig}
+    sections = {
+        "embedding": EmbeddingConfig,
+        "vector_store": VectorStoreConfig,
+        "sar": SARConfig,
+        "retrieval": RetrievalConfig,
+        "baseline": BaselineConfig,
+        "llm": LLMConfig,
+        "migres": MigresConfig,
+        "data": DataConfig,
+        "run": RunConfig,
+    }
     unknown = set(d) - set(sections) - {"future"}
     if unknown:
         raise ConfigError(f"unknown top-level config section(s): {sorted(unknown)}")
@@ -184,23 +248,45 @@ def config_from_dict(d: dict[str, Any]) -> Config:
 def _validate(cfg: Config) -> None:
     from .scoring import SARWeights
 
-    SARWeights(cfg.sar.alpha, cfg.sar.beta, cfg.sar.gamma)  # raises ConfigError on violation
-    if cfg.sar.k < 1:
-        raise ConfigError("sar.k must be >= 1")
+    SARWeights(cfg.sar.alpha, cfg.sar.beta, cfg.sar.gamma)
+    if cfg.sar.k < 1 or cfg.baseline.k < 1:
+        raise ConfigError("retrieval K values must be >= 1")
+    if cfg.sar.chunk_size < 1 or cfg.baseline.score_chunk_size < 1:
+        raise ConfigError("chunk sizes must be >= 1")
     if cfg.embedding.type not in ("sentence_transformer", "hashing"):
-        raise ConfigError(f"embedding.type must be sentence_transformer|hashing, got {cfg.embedding.type!r}")
-    if cfg.vector_store.type not in ("pinecone", "local"):
-        raise ConfigError("vector_store.type must be pinecone|local")
+        raise ConfigError("embedding.type must be sentence_transformer|hashing")
+    if cfg.vector_store.type not in ("local", "local_memmap"):
+        raise ConfigError("vector_store.type must be local|local_memmap")
+    if cfg.retrieval.method not in {"sar", "bm25", "mmr", "sentence_transformer_search", "infogain_rag", "dpr", "contriever", "splade", "colbertv2"}:
+        raise ConfigError(f"unsupported retrieval.method={cfg.retrieval.method!r}")
     if cfg.migres.backend not in ("upstream", "standin"):
         raise ConfigError("migres.backend must be upstream|standin")
     if cfg.migres.gap_source not in ("queries", "missing_info", "both"):
         raise ConfigError("migres.gap_source must be queries|missing_info|both")
     if cfg.sar.weighting not in ("static", "dynamic"):
         raise ConfigError("sar.weighting must be static|dynamic")
+    if cfg.sar.weighting == "dynamic" and not cfg.sar.dynamic_rule.strip():
+        raise ConfigError(
+            "sar.weighting=dynamic requires sar.dynamic_rule. The methodology states that weights may change "
+            "with retrieval state but does not define a rule; no implicit rule is used."
+        )
+    if cfg.retrieval.method != "sar" and cfg.sar.weighting == "dynamic":
+        raise ConfigError("sar.weighting applies only when retrieval.method=sar")
+    if cfg.data.max_documents is not None and cfg.data.max_documents < 1:
+        raise ConfigError("data.max_documents must be >= 1 when provided")
+    if not (0.0 < cfg.data.validation_fraction < 1.0):
+        raise ConfigError("data.validation_fraction must be in (0,1)")
+    if cfg.data.corpus_chunk_max_tokens < 1 or cfg.data.corpus_chunk_overlap_tokens < 0:
+        raise ConfigError("corpus chunking values must be positive/non-negative")
+    if cfg.data.corpus_chunk_overlap_tokens >= cfg.data.corpus_chunk_max_tokens:
+        raise ConfigError("corpus_chunk_overlap_tokens must be smaller than corpus_chunk_max_tokens")
+    if cfg.baseline.mmr_candidate_multiplier < 1 or cfg.baseline.infogain_candidate_k < 1:
+        raise ConfigError("baseline candidate settings must be >= 1")
+    if not (0.0 <= cfg.baseline.mmr_lambda <= 1.0):
+        raise ConfigError("baseline.mmr_lambda must be in [0,1]")
 
 
 def load_config(*paths: str | os.PathLike, overrides: dict[str, Any] | None = None) -> Config:
-    """Load and deep-merge YAML files in order (later wins), then apply ``overrides``."""
     merged: dict[str, Any] = {}
     for p in paths:
         p = Path(p)
@@ -216,7 +302,6 @@ def load_config(*paths: str | os.PathLike, overrides: dict[str, Any] | None = No
 
 
 def parse_overrides(pairs: list[str] | None) -> dict[str, Any]:
-    """``["sar.k=10", "llm.provider=openai"]`` -> nested dict (values parsed as YAML scalars)."""
     out: dict[str, Any] = {}
     for p in pairs or []:
         if "=" not in p or "." not in p.split("=", 1)[0]:

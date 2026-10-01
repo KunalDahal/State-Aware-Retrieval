@@ -4,29 +4,29 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sar-migres"
-version = "0.1.0"
-description = "State Aware Retrieval (SAR) integrated into the MIGRES iterative RAG framework - design + core implementation"
+version = "0.3.0"
+description = "State Aware Retrieval with swappable MIGRES retrieval baselines and executable experiment notebooks"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
 dependencies = [
   "numpy>=1.26,<3",
   "PyYAML>=6,<7",
+  "scipy>=1.11",   # imported at module level by baselines.py
 ]
 
 [project.optional-dependencies]
 # real embeddings (methodology: sentence-transformers/multi-qa-mpnet-base-cos-v1)
 st       = ["sentence-transformers>=5.6.1,<7"]
-pinecone = ["pinecone>=9.1,<11"]
 gemini   = ["google-genai>=2,<3"]
 openai   = ["openai>=3,<4"]
 # needed by the official MIGRES cross-encoder filter (Reranker) and NLI check
 migres   = ["torch>=2.13,<3", "transformers>=4.50,<6", "nltk>=3.9", "scikit-learn>=1.4", "scipy>=1.11", "tqdm>=4.66"]
-# October stage
+# Experimental dependencies
 optim    = ["bayesian-optimization>=3.3,<4"]
 notebook = ["jupyter>=1.0", "ipykernel>=6", "nbformat>=5", "nbclient>=0.10", "pandas>=2"]
 dev      = ["pytest>=8", "nbformat>=5", "nbclient>=0.10", "ipykernel>=6", "bayesian-optimization>=3.3,<4"]
-all      = ["sar-migres[st,pinecone,gemini,openai,migres,optim,notebook]"]
+all      = ["sar-migres[st,gemini,openai,migres,optim,notebook]"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

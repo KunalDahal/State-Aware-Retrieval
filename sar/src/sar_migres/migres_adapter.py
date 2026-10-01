@@ -65,56 +65,130 @@ TESTED_UPSTREAM_SHA256 = {
 
 
 # ----------------------------------------------------------------------------------------------
-# State mapping + trace recording (backend independent)
+# State mapping + generic retrieval provider
 # ----------------------------------------------------------------------------------------------
 def derive_gaps(question: str, queries: list[str], missing_info: str, gap_source: str, iteration: int) -> list[str]:
-    """G_t from MIGRES variables. G_0 is always empty (methodology 5.2.6)."""
+    """Map the MIGRES state to G_t.  G_0 is empty, as specified in methodology Sec. 5.2.6."""
     if iteration == 0:
         return []
     gaps: list[str] = []
     if gap_source in ("queries", "both"):
-        gaps += [x.strip() for x in queries if isinstance(x, str) and x.strip() and x.strip() != question.strip()]
+        gaps.extend(x.strip() for x in queries if isinstance(x, str) and x.strip() and x.strip() != question.strip())
     if gap_source in ("missing_info", "both") and missing_info and missing_info.strip():
         gaps.append(missing_info.strip())
     return list(dict.fromkeys(gaps))
 
 
-class SARSearchProvider:
-    """Wraps :class:`StateAwareRetriever`; records one :class:`TraceRecord` per SAR call."""
+class RetrieverSearchProvider:
+    """Adapter shared by SAR and every baseline retriever.
 
-    def __init__(self, retriever: StateAwareRetriever, run_id: str, qid_of: Callable[[str], str],
-                 gap_source: str = "queries", snippet_chars: int = 240):
-        self.retriever, self.run_id, self.qid_of = retriever, run_id, qid_of
-        self.gap_source, self.snippet_chars = gap_source, snippet_chars
+    SAR consumes (q, E_t, G_t) and applies its own scoring.  Baselines receive the current
+    MIGRES-generated query list and are fused with ``retrieve_many``.  This means changing the
+    retrieval method no longer changes the surrounding MIGRES loop, prompts, filtering,
+    evidence extraction or stopping behaviour.
+    """
+
+    def __init__(self, retriever, run_id: str, qid_of: Callable[[str], str], *,
+                 gap_source: str = "queries", snippet_chars: int = 240, k: int = 5,
+                 sync_callback: Callable[[], Any] | None = None):
+        self.retriever = retriever
+        self.run_id = run_id
+        self.qid_of = qid_of
+        self.gap_source = gap_source
+        self.snippet_chars = snippet_chars
+        self.k = int(k)
+        self.sync_callback = sync_callback
         self.traces: dict[str, list[TraceRecord]] = {}
-        self._last_docs: dict[str, list] = {}
+        self._last_docs: dict[str, list[dict[str, Any]]] = {}
+
+    @property
+    def is_sar(self) -> bool:
+        return bool(getattr(self.retriever, "is_sar", False))
+
+    @property
+    def name(self) -> str:
+        return str(getattr(self.retriever, "name", "retriever"))
+
+    def _make_trace_documents(self, rows: list[tuple[str, float]], iteration: int) -> list[dict[str, Any]]:
+        docs: list[dict[str, Any]] = []
+        for rank, (did, score) in enumerate(rows, start=1):
+            d = self.retriever.corpus.get(did) if hasattr(self.retriever, "corpus") else None
+            docs.append({
+                "doc_id": str(did), "rank": rank, "title": d.title if d else "",
+                "text": snippet(d.text, self.snippet_chars) if d else "",
+                "relevance": 0.0, "gap_coverage": 0.0, "novelty": 0.0,
+                "score": float(score), "retrieval_score": float(score),
+                "retriever": self.name, "score_name": getattr(self.retriever, "score_name", "baseline_score"),
+                "is_sar": False,
+            })
+        return docs
 
     def retrieve_for(self, question: str, queries: list[str], known_info: list[str], missing_info: str = "") -> list[dict]:
-        trs = self.traces.setdefault(question, [])
-        it = len(trs)
-        gaps = derive_gaps(question, list(queries), missing_info, self.gap_source, it)
+        traces = self.traces.setdefault(question, [])
+        iteration = len(traces)
+        # At iteration t>0, MIGRES has already completed the previous retrieval's filtering,
+        # evidence extraction and missing-information update before asking for the next retrieval.
+        # Syncing here therefore implements the methodology's end-of-iteration corpus check without
+        # forcing a refresh before the first retrieval.
+        if self.is_sar and iteration > 0 and self.sync_callback is not None:
+            self.sync_callback()
         t0 = time.perf_counter()
-        res = self.retriever.retrieve(RetrievalState(question, [str(e) for e in known_info], gaps), iteration=it)
+        stats = getattr(self.retriever, "stats", None)
+        before_scored = int(getattr(stats, "n_docs_scored", 0)) if stats else 0
+        before_sim = int(getattr(stats, "n_similarity_calcs", 0)) if stats else 0
+        before_retrieval = float(getattr(stats, "retrieval_seconds", 0.0)) if stats else 0.0
+        if self.is_sar:
+            gaps = derive_gaps(question, list(queries), missing_info, self.gap_source, iteration)
+            res = self.retriever.retrieve(
+                RetrievalState(question, [str(e) for e in known_info], gaps), iteration=iteration, k=self.k)
+            docs = []
+            for d in res.documents:
+                row = d.to_dict()
+                row["text"] = snippet(row["text"], self.snippet_chars)
+                row["retriever"] = "sar"; row["score_name"] = "sar_score"; row["is_sar"] = True
+                row["retrieval_score"] = row["score"]
+                docs.append(row)
+            total = time.perf_counter() - t0
+            trace = TraceRecord(
+                run_id=self.run_id, question_id=self.qid_of(question), question=question, iteration=iteration,
+                gaps=gaps, evidence=[str(e) for e in known_info], alpha=res.alpha, beta=res.beta, gamma=res.gamma,
+                k=res.k, documents=docs, n_docs_scored=res.n_docs_scored,
+                n_similarity_calcs=res.n_similarity_calcs, embed_seconds=res.embed_seconds,
+                score_seconds=res.score_seconds, total_seconds=total, retriever="sar", score_name="sar_score", is_sar=True)
+            self._last_docs[question] = docs
+            traces.append(trace)
+            return [{"title": d.title, "text": d.text, "score": d.score, "doc_id": d.doc_id,
+                     "sar_rank": d.rank} for d in res.documents]
+
+        clean_queries = list(dict.fromkeys(q.strip() for q in queries if isinstance(q, str) and q.strip())) or [question]
+        rows = self.retriever.retrieve_many(clean_queries, self.k)
+        docs = self._make_trace_documents(rows, iteration)
+        stats = getattr(self.retriever, "stats", None)
+        n_scored = int(getattr(stats, "n_docs_scored", 0)) - before_scored if stats else 0
+        n_sim = int(getattr(stats, "n_similarity_calcs", 0)) - before_sim if stats else 0
+        score_s = float(getattr(stats, "retrieval_seconds", 0.0)) - before_retrieval if stats else None
         total = time.perf_counter() - t0
-        docs = []
-        for d in res.documents:
-            row = d.to_dict()
-            row["text"] = snippet(row["text"], self.snippet_chars)
-            docs.append(row)
-        trs.append(TraceRecord(
-            run_id=self.run_id, question_id=self.qid_of(question), question=question, iteration=it, gaps=gaps,
-            evidence=[str(e) for e in known_info], alpha=res.alpha, beta=res.beta, gamma=res.gamma, k=res.k,
-            documents=docs, n_docs_scored=res.n_docs_scored, n_similarity_calcs=res.n_similarity_calcs,
-            embed_seconds=res.embed_seconds, score_seconds=res.score_seconds, total_seconds=total))
-        self._last_docs[question] = res.documents
-        return [{"title": d.title, "text": d.text, "score": d.score, "doc_id": d.doc_id, "sar_rank": d.rank}
-                for d in res.documents]
+        if score_s is None:
+            score_s = total
+        trace = TraceRecord(
+            run_id=self.run_id, question_id=self.qid_of(question), question=question, iteration=iteration,
+            gaps=derive_gaps(question, clean_queries, missing_info, self.gap_source, iteration),
+            evidence=[str(e) for e in known_info], alpha=0.0, beta=0.0, gamma=0.0, k=self.k, documents=docs,
+            n_docs_scored=n_scored, n_similarity_calcs=n_sim, embed_seconds=0.0,
+            score_seconds=min(score_s, total), total_seconds=total, retriever=self.name,
+            score_name=getattr(self.retriever, "score_name", "baseline_score"), is_sar=False)
+        self._last_docs[question] = docs
+        traces.append(trace)
+        return [{"title": d["title"], "text": d["text"], "score": d["score"], "doc_id": d["doc_id"],
+                 "sar_rank": d["rank"]} for d in docs]
 
     def record_filter(self, question: str, kept_titles: list[str]) -> None:
+        if question not in self.traces or not self.traces[question]:
+            return
         tr = self.traces[question][-1]
         kept = set(kept_titles)
         tr.migres_state_after["filter_kept"] = len(kept_titles)
-        tr.migres_state_after["filter_kept_doc_ids"] = [d.doc_id for d in self._last_docs[question] if d.title in kept]
+        tr.migres_state_after["filter_kept_doc_ids"] = [d["doc_id"] for d in self._last_docs[question] if d.get("title") in kept]
 
     def finalize(self, question: str, final_evidence: list[str], final_missing: str = "") -> None:
         trs = self.traces.get(question, [])
@@ -129,15 +203,24 @@ class SARSearchProvider:
             })
         if trs and final_missing:
             trs[-1].migres_state_after["missing_info_at_end"] = final_missing
+        if trs and self.is_sar and self.sync_callback is not None:
+            # No subsequent retrieval call exists after the final iteration, so perform the final
+            # corpus check after MIGRES has finished the question.
+            self.sync_callback()
+
+
+class SARSearchProvider(RetrieverSearchProvider):
+    """Backward-compatible SAR-specific provider name."""
+
+    def __init__(self, retriever: StateAwareRetriever, run_id: str, qid_of: Callable[[str], str],
+                 gap_source: str = "queries", snippet_chars: int = 240, k: int | None = None,
+                 sync_callback: Callable[[], Any] | None = None):
+        super().__init__(retriever, run_id, qid_of, gap_source=gap_source, snippet_chars=snippet_chars,
+                         k=k or retriever.k, sync_callback=sync_callback)
 
 
 class LexicalStandInReranker:
-    """OFFLINE stand-in for MIGRES' cross-encoder filter (``Reranker.sentenceRerank``).
-
-    Same input/output contract as upstream's non-sentence-level branch (returns
-    ``[text, score, question, title, text]`` rows, skips passages already used twice).
-    Scores are token-overlap fractions, not cross-encoder logits - smoke tests only.
-    """
+    """OFFLINE stand-in for MIGRES' cross-encoder filter."""
 
     is_stand_in = True
 
@@ -307,15 +390,16 @@ class UpstreamCode:
         return ns
 
 
-def make_upstream_namespace_args(mcfg, data_path_hint: str, save_path: str, model_name: str) -> argparse.Namespace:
+def make_upstream_namespace_args(mcfg, data_path_hint: str, save_path: str, model_name: str, search_type: str = "custom") -> argparse.Namespace:
     """Mirrors the flags of upstream ``code/migres.sh`` (see README for the deliberate deviations)."""
     return argparse.Namespace(
         data_path=data_path_hint, save_path=save_path, top_k=mcfg.top_k, max_iter=mcfg.max_iter,
         relevance=mcfg.relevance, gpt_knowledge=mcfg.gpt_knowledge, entail_judge=mcfg.entail_judge,
         add_demon=mcfg.add_demon, demon_path=mcfg.demon_path or None, num_return=mcfg.num_return,
         sentRerank=mcfg.sent_rerank, ranker_model_path=mcfg.ranker_model_path, model_name_or_path=None,
-        summ_snippet=None, search_type="sar", normalize=True, num_process=1, aug=False, retrieval=False,
-        model_name=model_name, query_prompt="", encoder_path=None, encoded_data_path=None, index_dir=None)
+        summ_snippet=None, search_type=search_type, normalize=True, num_process=1, aug=False, retrieval=False,
+        model_name=model_name, query_prompt="", encoder_path=None, encoded_data_path=None, index_dir=None,
+        sar_retrieval_method=search_type)
 
 
 class UpstreamMigres(MigresBackend):
@@ -358,22 +442,22 @@ class UpstreamMigres(MigresBackend):
             """Upstream RetGBatched with retrieval (`search`) and LLM transport (`askGPT`) replaced."""
 
             def __init__(self, data, args, provider, llm, failures):
-                self._sar, self._llm, self._failures = provider, llm, failures
+                self._retrieval, self._llm, self._failures = provider, llm, failures
                 super().__init__(data, args, searcher=None, model_name=args.model_name, world_size=1,
                                  wikiData=None, nli_component=backend._nli_component())
 
-            # ---- the ONE retrieval replacement: SAR instead of BM25 ------------------------------
+            # ---- the only retrieval replacement: route to SAR OR one Table-5.6 baseline --------
             def search(self, questions, rerank=True):
                 raw = {}
                 for ori_q, queries in questions.items():
-                    raw[ori_q] = self._sar.retrieve_for(ori_q, list(queries), self.known_info[ori_q],
-                                                        self.missing_info.get(ori_q, ""))
+                    raw[ori_q] = self._retrieval.retrieve_for(ori_q, list(queries), self.known_info[ori_q],
+                                                             self.missing_info.get(ori_q, ""))
                 if not rerank:
                     return None, raw
-                ranked = self.reranker.sentenceRerank(raw, questions, self.history_passages)  # upstream filter
+                ranked = self.reranker.sentenceRerank(raw, questions, self.history_passages)
                 for ori_q, rows in ranked.items():
-                    self._sar.record_filter(ori_q, [r[3] for r in rows])
-                ranked = self.QueryForward(ranked, questions, raw)  # upstream fallback
+                    self._retrieval.record_filter(ori_q, [r[3] for r in rows])
+                ranked = self.QueryForward(ranked, questions, raw)
                 return ranked, raw
 
             # ---- LLM transport (compat adapter #2) -----------------------------------------------
@@ -402,7 +486,7 @@ class UpstreamMigres(MigresBackend):
         data_hint = self.cfg.data.dataset_path if "strategy" in str(self.cfg.data.dataset).lower() else "custom_dataset.json"
         if "strategy" in str(self.cfg.data.dataset).lower():
             data_hint = "./data/strategy.json"  # upstream selects its StrategyQA prompts via this substring
-        args = make_upstream_namespace_args(self.cfg.migres, data_hint, str(work / f"{qid}.json"), llm.model)
+        args = make_upstream_namespace_args(self.cfg.migres, data_hint, str(work / f"{qid}.json"), llm.model, search_type=getattr(provider, "name", "custom"))
         d0 = {k: v for k, v in copy.deepcopy(item).items() if k not in ("prompt_to_ask",)}
         failures: list[dict] = []
         t0 = time.perf_counter()

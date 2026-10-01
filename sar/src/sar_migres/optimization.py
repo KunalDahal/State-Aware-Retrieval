@@ -1,10 +1,8 @@
-"""Bayesian optimisation of (alpha, beta, gamma) - FUTURE / OCTOBER EXPERIMENT.
+"""Bayesian optimisation of SAR simplex weights.
 
-The simplex constraint alpha+beta+gamma = 1, all >= 0, is enforced by construction:
-the optimiser searches u, v in [0,1]^2 and ``SARWeights.from_simplex`` maps them to
-alpha = u, beta = (1-u) v, gamma = (1-u)(1-v).  No objective is shipped: the user supplies
-``objective(weights) -> float`` evaluated on VALIDATION data (the methodology's protocol).
-This module is exercised in tests only with a toy analytic function to verify the constraint.
+The optimisation API takes an explicit validation-only objective.  The supplied methodology
+requires Bayesian optimisation but does not state the objective function; the executable
+experiment plan therefore records that choice explicitly rather than hiding it in code.
 """
 from __future__ import annotations
 

@@ -1,27 +1,10 @@
-"""Dataset loaders for the datasets named in methodology.tex Sec. 5.4.1 (+ RGB, future).
-
-Acquisition is deliberately separate: nothing here downloads data.  Loaders read LOCAL files
-and raise ``DatasetNotFoundError`` with instructions when a file is missing.  Accepted layouts
-are the ones verified in the official MIGRES repository (``data/*.json`` are JSON-lines files
-despite the extension; plain JSON lists are accepted too).  No preprocessing beyond field
-renaming is applied; official split handling is left to the file you provide.
-
-    name                file (MIGRES data/)  fields used
-    wikihop             wikihop.json         _id, question, answer, (context, supporting_facts kept)
-    hotpotqa            hotpot.json          _id, question, answer, (context, supporting_facts kept)
-    musique             musique.json         id, question, answer, (paragraphs, answer_aliases kept)
-    natural_questions   odqa.json            id, question, answer, dataset == "nq"
-    triviaqa            odqa.json            id, question, answer, dataset == "trivia"
-    strategyqa          strategy.json        qid, question, answer, (facts, decomposition kept)
-    jsonl               any                  question [+ id, answer]  (generic)
-    sample              data/sample/...      bundled synthetic smoke-test questions
-"""
+"""Dataset loaders and ground-truth helpers for the methodology datasets."""
 from __future__ import annotations
 
 import ast
 import json
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any, Iterable, Iterator
 
 from .errors import DatasetNotFoundError
 from .logging_utils import get_logger
@@ -29,12 +12,12 @@ from .schemas import Document
 from .utils import sha256_text
 
 DATASET_HELP = {
-    "wikihop": "WikiHop [Welbl et al. 2018]. The MIGRES repo ships a 200-question sample: MIGRES/data/wikihop.json.",
-    "hotpotqa": "HotpotQA [Yang et al. 2018]. MIGRES repo sample: MIGRES/data/hotpot.json (200 questions).",
-    "musique": "MuSiQue [Trivedi et al. 2022]. MIGRES repo sample: MIGRES/data/musique.json (200 questions).",
-    "natural_questions": "Natural Questions [Kwiatkowski et al. 2019]. MIGRES repo sample: MIGRES/data/odqa.json (rows with dataset=='nq').",
-    "triviaqa": "TriviaQA [Joshi et al. 2017]. MIGRES repo sample: MIGRES/data/odqa.json (rows with dataset=='trivia').",
-    "strategyqa": "StrategyQA [Geva et al. 2021]. MIGRES repo sample: MIGRES/data/strategy.json (229 questions).",
+    "wikihop": "WikiHop JSON supplied by MIGRES or the official dataset.",
+    "hotpotqa": "HotpotQA JSON supplied by MIGRES or the official dataset.",
+    "musique": "MuSiQue JSON supplied by MIGRES or the official dataset.",
+    "natural_questions": "Natural Questions rows tagged dataset=='nq'.",
+    "triviaqa": "TriviaQA rows tagged dataset=='trivia'.",
+    "strategyqa": "StrategyQA JSON.",
 }
 _ODQA_TAG = {"natural_questions": "nq", "triviaqa": "trivia"}
 _ID_KEYS = {"wikihop": ("_id",), "hotpotqa": ("_id",), "musique": ("id",), "natural_questions": ("id",),
@@ -43,16 +26,31 @@ SUPPORTED = tuple(_ID_KEYS)
 _log = get_logger("datasets")
 
 
-def _read_records(path: Path) -> list[dict[str, Any]]:
-    txt = path.read_text(encoding="utf-8")
+def _read_records(path: Path, split: str | None = None) -> list[dict[str, Any]]:
     try:
-        data = json.loads(txt)
+        data = json.loads(path.read_text(encoding="utf-8"))
         if isinstance(data, dict):
-            data = data.get("data", [data])
-        return list(data)
+            if split:
+                key_map = {str(k).lower(): k for k in data.keys()}
+                for candidate in (split.lower(), "dev" if split.lower() == "validation" else "", "development" if split.lower() == "validation" else ""):
+                    if candidate and candidate in key_map and isinstance(data[key_map[candidate]], list):
+                        data = data[key_map[candidate]]
+                        break
+                else:
+                    data = data.get("data", [data])
+            else:
+                data = data.get("data", [data])
+        rows = list(data)
+        if split:
+            tagged = [r for r in rows if isinstance(r, dict) and any(k in r for k in ("split", "partition", "set"))]
+            if tagged:
+                target = split.lower()
+                aliases = {target, "dev"} if target == "validation" else {target}
+                rows = [r for r in rows if str(r.get("split", r.get("partition", r.get("set", "")))).lower() in aliases]
+        return rows
     except json.JSONDecodeError:
         out = []
-        for i, line in enumerate(txt.splitlines(), 1):
+        for i, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
             if line.strip():
                 try:
                     out.append(json.loads(line))
@@ -70,20 +68,18 @@ def _maybe_literal(v: Any) -> Any:
     return v
 
 
-def load_questions(name: str, path: str | Path, limit: int | None = None) -> list[dict[str, Any]]:
-    """Return ``[{id, question, answer, dataset, ...native extras}]``."""
+def load_questions(name: str, path: str | Path, limit: int | None = None, split: str | None = None) -> list[dict[str, Any]]:
     if name not in SUPPORTED:
         raise ValueError(f"unknown dataset {name!r}; supported: {SUPPORTED}")
     p = Path(path)
     if not p.exists():
-        raise DatasetNotFoundError(f"dataset file not found: {p}\n  {DATASET_HELP.get(name, 'provide a JSON/JSONL file with a `question` field')}\n"
-                                   "  See data/README.md for download/preparation instructions.")
-    rows = _read_records(p)
+        raise DatasetNotFoundError(f"dataset file not found: {p}\n{DATASET_HELP.get(name, '')}\nSee data/README.md for the expected dataset layout.")
+    rows = _read_records(p, split=split)
     tag = _ODQA_TAG.get(name)
     out, seen = [], set()
     for i, r in enumerate(rows):
         if not isinstance(r, dict) or not str(r.get("question", "")).strip():
-            raise DatasetNotFoundError(f"{p}: record {i} has no non-empty `question` field")
+            raise DatasetNotFoundError(f"{p}: record {i} has no non-empty question")
         if tag and "dataset" in r and r["dataset"] != tag:
             continue
         qid = next((str(r[k]) for k in _ID_KEYS[name] if r.get(k) not in (None, "")), None) or f"{name}-{i}"
@@ -96,72 +92,150 @@ def load_questions(name: str, path: str | Path, limit: int | None = None) -> lis
         if limit and len(out) >= limit:
             break
     if not out:
-        raise DatasetNotFoundError(f"{p}: no usable records for dataset {name!r}")
+        raise DatasetNotFoundError(f"{p}: no usable records for {name!r}")
     return out
 
 
-# -- development corpora built from per-question contexts (NOT the Wikipedia dumps MIGRES uses) ----------
-def contexts_to_documents(name: str, records: list[dict[str, Any]]) -> Iterator[Document]:
-    """HotpotQA/WikiHop ``context`` = [[title, [sentences]]]; MuSiQue ``paragraphs`` = [{title, paragraph_text}].
 
-    Records without a usable context (e.g. 36/200 rows of the upstream WikiHop sample have none) are
-    skipped and counted in a warning; if NO record yields a document a DatasetNotFoundError is raised.
+def split_holdout_from_train(records: list[dict[str, Any]], fraction: float = 0.1, seed: int = 13) -> list[dict[str, Any]]:
+    """Deterministically hold out a validation set from training records.
+
+    The final labeled evaluation uses the public development split by default. This helper keeps
+    tuning data separate from that final split when a dataset does not expose a labeled test set.
+    Selection is hash-based, so ordering of the source file cannot affect membership.
     """
+    if not (0.0 < float(fraction) < 1.0):
+        raise ValueError("fraction must be in (0,1)")
+    scored = []
+    for r in records:
+        qid = str(r.get("id", r.get("_id", r.get("qid", ""))))
+        h = sha256_text(f"{seed}:{qid}")
+        bucket = int(h[:12], 16) / float(16**12)
+        scored.append((bucket, r))
+    selected = [r for bucket, r in scored if bucket < fraction]
+    if not selected and records:
+        selected = [min(scored, key=lambda x: x[0])[1]]
+    return selected
+
+
+def load_phase_questions(name: str, path: str | Path, phase: str, *, limit: int | None = None,
+                         final_split: str = "dev", validation_fraction: float = 0.1,
+                         validation_seed: int = 13) -> list[dict[str, Any]]:
+    """Load questions according to the project's two-phase protocol.
+
+    ``tuning`` is a deterministic holdout from the training split. ``final`` uses the labeled
+    development split by default because many benchmark test sets do not publish answer labels.
+    """
+    phase = str(phase).lower()
+    if phase == "tuning":
+        train = load_questions(name, path, None, split="train")
+        tagged = split_holdout_from_train(train, validation_fraction, validation_seed)
+        if limit is not None:
+            tagged = tagged[:limit]
+        return tagged
+    if phase == "final":
+        return load_questions(name, path, limit, split=final_split)
+    raise ValueError("phase must be tuning or final")
+
+
+def dataset_statistics(items: Iterable[dict[str, Any]]) -> dict[str, Any]:
+    rows = list(items)
+    with_gold = sum(1 for r in rows if r.get("answer") is not None)
+    return {
+        "n_questions": len(rows),
+        "n_with_gold": with_gold,
+        "n_without_gold": len(rows) - with_gold,
+    }
+
+def contexts_to_documents(name: str, records: list[dict[str, Any]]) -> Iterator[Document]:
     if name not in ("hotpotqa", "wikihop", "musique"):
-        raise ValueError(f"no per-question contexts to build a corpus from for dataset {name!r}")
-    seen: set[str] = set()
-    n_skipped = n_yielded_any = 0
+        raise ValueError(f"no per-question contexts to build a corpus from for {name!r}")
+    seen: set[str] = set(); n_skipped = 0; yielded_records = 0
     for r in records:
         pairs: list[tuple[str, str]] = []
         if name in ("hotpotqa", "wikihop"):
             ctx = _maybe_literal(r.get("context"))
             if not isinstance(ctx, list) or not ctx:
-                n_skipped += 1
-                continue
+                n_skipped += 1; continue
             for item in ctx:
-                title, sents = item[0], item[1]
-                pairs.append((str(title), " ".join(x.strip() for x in sents if x.strip())))
+                if not isinstance(item, (list, tuple)) or len(item) < 2:
+                    continue
+                title, sents = str(item[0]), item[1]
+                pairs.append((title, " ".join(str(x).strip() for x in sents if str(x).strip())))
         else:
             paras = _maybe_literal(r.get("paragraphs"))
             if not isinstance(paras, list) or not paras:
-                n_skipped += 1
-                continue
+                n_skipped += 1; continue
             for para in paras:
-                pairs.append((str(para.get("title", "")), str(para.get("paragraph_text", "")).strip()))
+                if isinstance(para, dict):
+                    pairs.append((str(para.get("title", "")), str(para.get("paragraph_text", para.get("text", ""))).strip()))
         got = False
         for title, text in pairs:
             if not text:
                 continue
-            h = sha256_text(title + "\n" + text)
             got = True
+            h = sha256_text(title + "\n" + text)
             if h in seen:
                 continue
             seen.add(h)
             yield Document(doc_id="ctx-" + h[:16], text=text, title=title)
-        n_yielded_any += got
+        yielded_records += int(got)
     if n_skipped:
-        _log.warning("%s: %d/%d records have no usable per-question context and were skipped", name, n_skipped, len(records))
-    if not n_yielded_any:
-        raise DatasetNotFoundError(f"{name}: none of the {len(records)} records contain per-question contexts; "
-                                   "supply a corpus file instead (see data/README.md)")
+        _log.warning("%s: %d records have no usable context", name, n_skipped)
+    if not yielded_records:
+        raise DatasetNotFoundError(f"{name}: no records yielded corpus documents; supply a corpus file or provide records with usable context. See data/README.md.")
 
 
-# -- RGB (FUTURE / October) -------------------------------------------------------------------------------
-def load_rgb(path: str | Path, limit: int | None = None) -> list[dict[str, Any]]:
-    """Load an RGB JSONL file (github.com/chen700564/RGB, ``data/en.json``: id, query, answer, positive, negative).
+def gold_answer_aliases(item: dict[str, Any]) -> list[str]:
+    from .evaluation import gold_aliases
+    return gold_aliases(item.get("answer"))
 
-    Loader only - the noise-robustness / rejection / integration / counterfactual protocols
-    (methodology 5.6.6) are a FUTURE module; see ``evaluation.RGBRobustnessEvaluation``.
+
+def relevant_doc_ids(item: dict[str, Any], corpus: Iterable[Document] | Any) -> set[str]:
+    """Map supported evidence annotations to corpus document IDs.
+
+    HotpotQA/WikiHop are title-addressable. MuSiQue can be paragraph-addressable via common
+    ``is_supporting``/``is_supporting_paragraph`` fields. Other datasets return no retrieval
+    IDs unless the record explicitly provides ``supporting_doc_ids``/``relevant_docs``.
     """
+    explicit = item.get("supporting_doc_ids") or item.get("relevant_docs") or item.get("positive_doc_ids")
+    if isinstance(explicit, (list, tuple, set)):
+        return {str(x) for x in explicit}
+    name = str(item.get("dataset", "")).lower()
+    docs_iter = corpus.iter_documents() if hasattr(corpus, "iter_documents") else iter(corpus)
+    out: set[str] = set()
+    if name in {"hotpotqa", "wikihop"}:
+        sf = _maybe_literal(item.get("supporting_facts")) or []
+        titles = {str(x[0]) for x in sf if isinstance(x, (list, tuple)) and x}
+        for d in docs_iter:
+            if d.title in titles:
+                out.add(d.doc_id)
+    elif name == "musique":
+        paras = _maybe_literal(item.get("paragraphs")) or []
+        for i, p in enumerate(paras):
+            if not isinstance(p, dict):
+                continue
+            flag = bool(p.get("is_supporting", p.get("is_supporting_paragraph", False)))
+            if flag:
+                title = str(p.get("title", ""))
+                text = str(p.get("paragraph_text", p.get("text", ""))).strip()
+                h = sha256_text(title + "\n" + text)
+                out.add("ctx-" + h[:16])
+    return out
+
+
+def load_rgb(path: str | Path, limit: int | None = None) -> list[dict[str, Any]]:
+    """Load an RGB file; the evaluator handles the four robustness settings."""
     p = Path(path)
     if not p.exists():
-        raise DatasetNotFoundError(f"RGB file not found: {p} (clone https://github.com/chen700564/RGB and pass data/en.json)")
+        raise DatasetNotFoundError(f"RGB file not found: {p}")
     out = []
-    for r in _read_records(p):
-        if "query" not in r:
-            raise DatasetNotFoundError(f"{p}: RGB record without `query`")
+    for i, r in enumerate(_read_records(p)):
+        if not isinstance(r, dict):
+            continue
         rec = dict(r)
-        rec.update(id=str(r.get("id")), question=r["query"], answer=r.get("answer"), dataset="rgb")
+        rec.update(id=str(r.get("id", i)), question=str(r.get("query", r.get("question", ""))),
+                   answer=r.get("answer"), dataset="rgb")
         out.append(rec)
         if limit and len(out) >= limit:
             break

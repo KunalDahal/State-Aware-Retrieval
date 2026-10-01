@@ -9,7 +9,7 @@ data/
   sample/questions.jsonl   3 synthetic questions {"id", "question", "answer", "supporting_doc_ids"}
   raw/                     put downloaded benchmark files here      (git-ignored)
   processed/               corpus.jsonl produced by prepare_corpus  (git-ignored)
-  cache/                   embedding caches / Pinecone mirror        (git-ignored)
+  cache/                   embedding / vector-store caches            (git-ignored)
 ```
 
 ## Corpus format (what SAR searches)
@@ -37,21 +37,31 @@ The official MIGRES repository contains small (200-question) samples in exactly 
 files despite the `.json` extension - both forms load). Copy them to `data/raw/` for a first real run.
 Use the full official train/dev/test files for the October study; keep validation and test separate.
 
-## Building a corpus
-MIGRES retrieves from Wikipedia dumps (wiki-17/18/21 via DPR / Atlas; see the MIGRES README). For a real
-evaluation you should embed one of those dumps. That is a very large corpus (wiki-18 is 21M passages);
-embedding it with the 768-d model needs a GPU and ~65 GB for float32 vectors, which is why the store keeps
-vectors in a memory-mappable matrix and scores in chunks.
+## Building the benchmark corpus D
+The executable study does **not** use a full Wikipedia dump by default. D is a pooled, bounded corpus built from
+training-split passages from all six methodology datasets. It is deduplicated, chunked to at most 350 tokenizer
+tokens with 50-token overlap, and capped at 100,000 passages with a deterministic per-dataset quota so that one
+dataset cannot consume the whole budget. Development/final question records are never used to construct D.
 
-For a **development** corpus without downloading a dump, build one from the per-question contexts that
-ship with HotpotQA / WikiHop / MuSiQue:
+Build it with:
 
 ```bash
-python scripts/prepare_corpus.py --config configs/default.yaml --from-dataset hotpotqa data/raw/hotpot.json
-python scripts/prepare_corpus.py --from-file /path/to/psgs_w100.tsv --out data/processed/corpus.jsonl
+python scripts/prepare_corpus.py \
+  --dataset wikihop=data/raw/wikihop.json \
+  --dataset hotpotqa=data/raw/hotpot.json \
+  --dataset musique=data/raw/musique.json \
+  --dataset natural_questions=data/raw/nq.json \
+  --dataset triviaqa=data/raw/triviaqa.json \
+  --dataset strategyqa=data/raw/strategyqa.json
 ```
-This is a *different retrieval setting* from MIGRES' Wikipedia setting and results are not comparable to it.
 
-## RGB (future module)
-`git clone https://github.com/chen700564/RGB` and pass `data/en.json` to `datasets.load_rgb`. Only the loader
-exists; the four robustness protocols are an October task.
+The output includes a `.manifest.json` containing source hashes, split, tokenizer/chunking settings, quotas,
+and per-dataset document counts. A full Wikipedia-scale run remains possible by supplying an appropriate corpus
+file, but that is outside the bounded 100k-passage experiment defined for this project.
+
+## RGB robustness
+The project now includes an evaluator for the four methodology settings: `noise_robustness`,
+`negative_rejection`, `information_integration`, and `counterfactual_robustness`. The evaluator
+consumes serialized RGB cases plus the corresponding model outputs; it does not silently synthesize
+RGB cases or LLM outputs. Point notebook `06_downstream_rag_robustness.ipynb` at the RGB JSON/JSONL
+file and an output file containing the required prediction/rejection/counterfactual fields.

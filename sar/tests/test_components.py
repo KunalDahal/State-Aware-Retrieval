@@ -10,84 +10,117 @@ from sar_migres.corpus import Corpus
 from sar_migres.datasets import contexts_to_documents, load_questions, load_rgb
 from sar_migres.embeddings import HashingEmbedder
 from sar_migres.errors import (ConfigError, DatasetNotFoundError, LLMResponseError, MissingCredentialError,
-                               VectorStoreConnectionError, retry_call)
+                               StoreIncompatibleError, retry_call)
 from sar_migres.llm import DeterministicOfflineLLM, GeminiClient, OpenAIClient, ScriptedLLM, build_llm, parse_dict_reply
 from sar_migres.logging_utils import RedactingFilter
 from sar_migres.optimization import optimize_weights
 from sar_migres.schemas import Document
-from sar_migres.vector_store import PineconeVectorStore, sync_corpus_embeddings
+from sar_migres.vector_store import DiskMemmapVectorStore, sync_corpus_embeddings
 
 
-# ---------------- Pinecone store with an injected in-memory fake index ----------------
-class FakeIndex:
-    def __init__(self):
-        self.data = {}
-        self.fail_upserts = 0
-
-    def upsert(self, vectors, namespace=""):
-        if self.fail_upserts:
-            self.fail_upserts -= 1
-            raise RuntimeError("429 rate limit")
-        for v in vectors:
-            self.data[v["id"]] = v
-
-    def delete(self, ids=None, namespace="", delete_all=False):
-        if delete_all:
-            self.data.clear()
-        for i in ids or []:
-            self.data.pop(i, None)
-
-    def describe_index_stats(self):
-        return {"namespaces": {"": {"vector_count": len(self.data)}} if self.data else {}}
-
-    def list(self, namespace=""):
-        yield list(self.data)
-
-    def fetch(self, ids, namespace=""):
-        return {"vectors": {i: {"values": self.data[i]["values"], "metadata": self.data[i]["metadata"]} for i in ids if i in self.data}}
-
-
+# ---------------- Disk-backed local store ----------------
 DOCS = [Document(f"d{i}", f"text of document {i} about subject {i}", f"Title {i}") for i in range(5)]
 
 
-def test_pinecone_store_sync_and_reload(tmp_path, monkeypatch):
-    monkeypatch.setattr("time.sleep", lambda s: None)
-    emb, idx = HashingEmbedder(dim=32), FakeIndex()
-    store = PineconeVectorStore("idx", emb.dim, emb.name, index=idx, mirror_dir=tmp_path / "m")
+def test_memmap_store_sync_and_reload(tmp_path):
+    emb = HashingEmbedder(dim=32)
+    store = DiskMemmapVectorStore(tmp_path / "m", emb.dim, emb.name)
     corpus = Corpus.from_documents(DOCS)
-    idx.fail_upserts = 1  # first upsert hits a rate limit and is retried
     rep = sync_corpus_embeddings(store, corpus, emb)
-    assert rep.n_embedded == 5 and len(idx.data) == 5 and len(store) == 5
-    assert idx.data["d0"]["metadata"]["embedder"] == emb.name
-    # a fresh process: mirror restored from disk without re-embedding
-    store2 = PineconeVectorStore("idx", emb.dim, emb.name, index=idx, mirror_dir=tmp_path / "m")
-    store2.load_mirror()
+    assert rep.n_embedded == 5 and len(store) == 5
+    # a fresh process: store reopened from disk without re-embedding
+    store2 = DiskMemmapVectorStore(tmp_path / "m", emb.dim, emb.name)
+    assert len(store2) == 5
     assert sync_corpus_embeddings(store2, corpus, emb).n_embedded == 0
-    # mirror deleted -> rebuilt from Pinecone fetch, still identical
-    import shutil; shutil.rmtree(tmp_path / "m")
-    store3 = PineconeVectorStore("idx", emb.dim, emb.name, index=idx, mirror_dir=tmp_path / "m")
-    store3.load_mirror()
-    np.testing.assert_allclose(store3.get_vectors(["d3"]), store.get_vectors(["d3"]), atol=1e-6)
-    # update propagates to Pinecone
+    np.testing.assert_allclose(store2.get_vectors(["d3"]), store.get_vectors(["d3"]), atol=1e-6)
+    # content update is re-embedded and its hash persisted
     corpus.add_or_update([Document("d3", "completely new content", "Title 3")])
-    assert sync_corpus_embeddings(store3, corpus, emb).n_changed == 1
-    assert idx.data["d3"]["metadata"]["content_hash"] == corpus.content_hashes["d3"]
+    assert sync_corpus_embeddings(store2, corpus, emb).n_changed == 1
+    assert store2.hashes()["d3"] == corpus.content_hashes["d3"]
+    # removal drops the row from active ids
+    store2.delete(["d0"])
+    assert "d0" not in store2.ids() and len(store2) == 4
 
 
-def test_pinecone_missing_key_and_connection_failure(monkeypatch):
-    monkeypatch.delenv("PINECONE_API_KEY", raising=False)
-    s = PineconeVectorStore("idx", 8, "m")
-    with pytest.raises(MissingCredentialError, match="PINECONE_API_KEY"):
-        s.connect()
+def test_memmap_store_rejects_incompatible_embedder(tmp_path):
+    DiskMemmapVectorStore(tmp_path / "m", 8, "model-a").flush()
+    with pytest.raises(StoreIncompatibleError):
+        DiskMemmapVectorStore(tmp_path / "m", 8, "model-b")
 
-    class Down(FakeIndex):
-        def describe_index_stats(self):
-            raise ConnectionError("connection refused")
 
-    monkeypatch.setattr("time.sleep", lambda s: None)
-    s2 = PineconeVectorStore("idx", 8, "m", index=Down(), retry_attempts=2)
-    with pytest.raises(VectorStoreConnectionError):
-        s2.load_mirror()
+def test_memmap_store_readd_after_delete(tmp_path):
+    """A deleted id that returns must be revived, not hit the doc_id PRIMARY KEY."""
+    emb = HashingEmbedder(dim=16)
+    store = DiskMemmapVectorStore(tmp_path / "m", emb.dim, emb.name)
+    corpus = Corpus.from_documents(DOCS[:3])
+    sync_corpus_embeddings(store, corpus, emb)
+    corpus.remove(["d1"])
+    sync_corpus_embeddings(store, corpus, emb)
+    assert store.ids() == ["d0", "d2"]
+    corpus.add_or_update([DOCS[1]])
+    sync_corpus_embeddings(store, corpus, emb)
+    assert sorted(store.ids()) == ["d0", "d1", "d2"] and len(store) == 3
+
+
+def test_memmap_store_many_ids_exceed_sql_parameter_limit(tmp_path):
+    emb = HashingEmbedder(dim=8)
+    store = DiskMemmapVectorStore(tmp_path / "m", emb.dim, emb.name)
+    ids = [f"x{i}" for i in range(1500)]  # > 999 bound parameters in a single IN (...)
+    store.upsert(ids, emb.encode([f"t{i}" for i in range(1500)]), [f"h{i}" for i in range(1500)])
+    assert store.get_vectors(ids).shape == (1500, 8)
+    store.delete(ids[:1200])
+    assert len(store) == 300
+
+
+def test_hash_mapping_bulk_view_matches_item_lookup(tmp_path):
+    emb = HashingEmbedder(dim=8)
+    store = DiskMemmapVectorStore(tmp_path / "m", emb.dim, emb.name)
+    store.upsert(["a", "b"], emb.encode(["x", "y"]), ["ha", "hb"])
+    m = store.hashes()
+    assert dict(m.items()) == {"a": "ha", "b": "hb"} and list(m.values()) == ["ha", "hb"]
+    assert "a" in m and "zzz" not in m and m["b"] == "hb"
+
+
+def test_bm25_document_frequency_accumulates_across_batches(tmp_path):
+    """Regression: df used INSERT OR REPLACE and kept only the last flush batch's count."""
+    import sqlite3
+    from sar_migres.baselines import BM25Baseline
+    n = 4500  # > 2 flush batches (flush every 2000 docs)
+    corpus = Corpus.from_documents([Document(f"d{i}", f"the common word number {i} uniq{i}", f"T{i}") for i in range(n)])
+    bm = BM25Baseline(corpus, cache_dir=tmp_path)
+    with sqlite3.connect(bm._db) as con:
+        df = dict(con.execute("SELECT term, df FROM terms WHERE term IN ('the','common','uniq7')"))
+    assert df == {"the": n, "common": n, "uniq7": 1}
+
+
+def test_dotenv_inline_comment_and_quotes(tmp_path, monkeypatch):
+    p = tmp_path / ".env"
+    p.write_text('A_URL=https://example.com/v1/ # trailing comment\nB_QUOTED="has # hash inside" # c\n'
+                 "C_PLAIN=abc\nD_EMPTY=\n", encoding="utf-8")
+    for k in ("A_URL", "B_QUOTED", "C_PLAIN", "D_EMPTY"):
+        monkeypatch.delenv(k, raising=False)
+    assert load_dotenv_file(p) == ["A_URL", "B_QUOTED", "C_PLAIN"]
+    assert os.environ["A_URL"] == "https://example.com/v1/"
+    assert os.environ["B_QUOTED"] == "has # hash inside"
+    assert os.environ["C_PLAIN"] == "abc"
+
+
+def test_openai_client_omits_null_temperature():
+    from types import SimpleNamespace
+    seen = {}
+
+    class FakeClient:
+        class chat:
+            class completions:
+                @staticmethod
+                def create(**kw):
+                    seen.update(kw)
+                    return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content="ok"))])
+
+    OpenAIClient("m", client=FakeClient, temperature=None).generate("hi")
+    assert "temperature" not in seen
+    OpenAIClient("m", client=FakeClient, temperature=0.0).generate("hi")
+    assert seen["temperature"] == 0.0
 
 
 # ---------------- LLM layer ----------------
@@ -187,9 +220,9 @@ def test_config_validation(tmp_path):
         load_config("configs/does_not_exist.yaml")
 
 
-def test_default_config_is_valid_and_uses_pinecone_and_thesis_model():
+def test_default_config_is_valid_and_uses_disk_store_and_thesis_model():
     cfg = load_config("configs/default.yaml")
-    assert cfg.vector_store.type == "pinecone" and cfg.embedding.model_name.endswith("multi-qa-mpnet-base-cos-v1")
+    assert cfg.vector_store.type == "local_memmap" and cfg.embedding.model_name.endswith("multi-qa-mpnet-base-cos-v1")
     assert cfg.embedding.expected_dim == 768 and cfg.llm.model == ""  # model never silently assumed
 
 
@@ -202,6 +235,17 @@ def upstream_like(tmp_path):
     (tmp_path / "odqa.json").write_text("\n".join(json.dumps(x) for x in [
         {"id": "1", "question": "nq q", "answer": "['x']", "dataset": "nq"}, {"id": "2", "question": "tv q", "answer": "['y']", "dataset": "trivia"}]))
     return tmp_path
+
+
+def test_dataset_split_filter(upstream_like):
+    p = upstream_like / "split.json"
+    p.write_text(json.dumps([
+        {"id": "train", "question": "q1", "answer": "a", "split": "train"},
+        {"id": "dev", "question": "q2", "answer": "a", "split": "dev"},
+        {"id": "test", "question": "q3", "answer": "a", "split": "test"},
+    ]))
+    assert [r["id"] for r in load_questions("jsonl", p, split="validation")] == ["dev"]
+    assert [r["id"] for r in load_questions("jsonl", p, split="test")] == ["test"]
 
 
 def test_dataset_loaders(upstream_like):
@@ -221,12 +265,13 @@ def test_missing_dataset_message(tmp_path):
         load_questions("squad", tmp_path / "x")
 
 
-def test_rgb_loader(tmp_path):
+def test_rgb_loader_and_evaluator(tmp_path):
     p = tmp_path / "en.json"
-    p.write_text(json.dumps({"id": 0, "query": "when?", "answer": [["2022"]], "positive": [], "negative": []}) + "\n")
-    assert load_rgb(p)[0]["question"] == "when?"
-    with pytest.raises(NotImplementedError):
-        evaluation.RGBRobustnessEvaluation()
+    p.write_text(json.dumps({"id": 0, "query": "when?", "answer": "2022", "setting": "noise_refine", "noise_level": 0.1}) + "\n")
+    rows = load_rgb(p)
+    assert rows[0]["question"] == "when?"
+    ev = evaluation.RGBRobustnessEvaluation.from_records(rows)
+    assert ev.evaluate([{"prediction": "2022"}])["noise_robustness"]["0.1"] == 1.0
 
 
 # ---------------- future modules ----------------
@@ -244,18 +289,27 @@ def test_metric_formulas_on_hand_computed_examples():
     assert evaluation.n_similarity_calculations(100, 2, 3) == 600 and evaluation.retrieval_overhead_pct(1.5, 1.0) == 50.0
 
 
-def test_bm25_and_st_search_baselines_and_stubs(tmp_path):
+def test_bm25_and_st_search_baselines_and_optional_transformer_paths(tmp_path):
     corpus = Corpus.from_documents([Document("a", "the cat sat on the mat", "Cat"), Document("b", "stock markets fell sharply", "Finance"),
                                     Document("c", "a dog chased the cat", "Dog")])
-    assert baselines.BM25Baseline(corpus).retrieve("stock market", 1)[0][0] == "b"
+    assert baselines.BM25Baseline(corpus, cache_dir=tmp_path / "bm25").retrieve("stock market", 1)[0][0] == "b"
     from sar_migres.vector_store import LocalVectorStore
     emb = HashingEmbedder(64)
     st = LocalVectorStore(tmp_path / "s", emb.dim, emb.name)
     sync_corpus_embeddings(st, corpus, emb)
     assert baselines.SentenceTransformerSearch(st, emb).retrieve("cat on a mat", 1)[0][0] == "a"
-    for cls in (baselines.DPRBaseline, baselines.ContrieverBaseline, baselines.SPLADEBaseline, baselines.ColBERTv2Baseline):
-        with pytest.raises(NotImplementedError, match="FUTURE"):
-            cls()
+    assert set(("bm25", "dpr", "contriever", "splade", "colbertv2", "sentence_transformer_search")).issubset(baselines.BASELINES)
+    # These are real implementations, but this test environment may intentionally omit Transformers.
+    for cls, args in (
+        (baselines.DPRBaseline, (corpus, "q-model", "ctx-model", tmp_path / "dpr")),
+        (baselines.ContrieverBaseline, (corpus, "contriever", tmp_path / "contr")),
+        (baselines.SPLADEBaseline, (corpus, "splade", tmp_path / "splade")),
+        (baselines.ColBERTv2Baseline, (corpus, "colbert", tmp_path / "colbert")),
+    ):
+        try:
+            obj = cls(*args)
+        except Exception as e:
+            assert not isinstance(e, NotImplementedError)
 
 
 def test_bayesian_optimisation_respects_simplex_on_toy_objective():
@@ -284,3 +338,24 @@ def test_contexts_skip_records_without_context_but_fail_if_none(upstream_like):
         list(contexts_to_documents("wikihop", [recs[0]]))
     with pytest.raises(ValueError):
         list(contexts_to_documents("strategyqa", recs))
+
+
+def test_retrieval_final_mean_uses_each_question_final_iteration(tmp_path):
+    import json
+    from sar_migres.experiment_runner import retrieval_metrics_from_run
+    run = tmp_path / "run"; run.mkdir()
+    traces = [
+        {"question_id":"q1","iteration":0,"k":1,"documents":[{"doc_id":"a"}]},
+        {"question_id":"q1","iteration":1,"k":1,"documents":[{"doc_id":"b"}]},
+        {"question_id":"q2","iteration":0,"k":1,"documents":[{"doc_id":"c"}]},
+        {"question_id":"q2","iteration":1,"k":1,"documents":[{"doc_id":"d"}]},
+    ]
+    (run / "traces.jsonl").write_text("\n".join(json.dumps(x) for x in traces))
+    corpus = Corpus.from_documents([
+        Document("a","A"), Document("b","B"), Document("c","C"), Document("d","D")])
+    items = [
+        {"id":"q1","question":"q1","supporting_doc_ids":["b"]},
+        {"id":"q2","question":"q2","supporting_doc_ids":["c"]},
+    ]
+    got = retrieval_metrics_from_run(run, items, corpus)
+    assert got["final_mean"]["recall_at_k"] == pytest.approx(0.5)

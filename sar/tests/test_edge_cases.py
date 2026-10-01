@@ -152,3 +152,16 @@ def test_out_of_sync_index_detected(tmp_path):
     r = StateAwareRetriever(store, corpus, emb, StaticWeights(SARWeights(1, 0, 0)), k=2)
     with pytest.raises(Exception):
         r._check_index_matches_corpus()
+
+
+def test_corpus_source_refresh_is_stat_guarded(tmp_path):
+    p = tmp_path / "c.jsonl"
+    p.write_text(json.dumps({"id": "d1", "title": "T", "text": "old"}) + "\n")
+    c = Corpus.from_file(p, lazy=True)
+    assert c.refresh_if_changed() is c
+    # Make the source visibly newer and changed.
+    p.write_text(json.dumps({"id": "d1", "title": "T", "text": "new"}) + "\n" +
+                 json.dumps({"id": "d2", "title": "T2", "text": "added"}) + "\n")
+    st = p.stat(); import os; os.utime(p, ns=(st.st_atime_ns, st.st_mtime_ns + 1_000_000))
+    c2 = c.refresh_if_changed()
+    assert c2 is not c and len(c2) == 2 and c2.get("d1").text == "new"

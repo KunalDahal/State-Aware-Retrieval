@@ -15,6 +15,9 @@ from __future__ import annotations
 import csv
 import json
 import sys
+import sqlite3
+import itertools
+from collections.abc import Sequence
 from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -110,6 +113,31 @@ def _iter_jsonl(path: Path) -> Iterator[tuple[int, Any]]:
                 yield start, e
 
 
+class CorpusIds(Sequence[str]):
+    """Sequence view over corpus ids without materialising the whole id list."""
+
+    def __init__(self, corpus: "Corpus"):
+        self._corpus = corpus
+
+    def __len__(self) -> int:
+        return len(self._corpus._hashes)
+
+    def __iter__(self) -> Iterator[str]:
+        return iter(self._corpus._hashes)
+
+    def __getitem__(self, index):
+        n = len(self)
+        if isinstance(index, slice):
+            start, stop, step = index.indices(n)
+            return list(itertools.islice(iter(self), start, stop, step))
+        i = int(index)
+        if i < 0:
+            i += n
+        if i < 0 or i >= n:
+            raise IndexError(index)
+        return next(itertools.islice(iter(self), i, i + 1))
+
+
 class Corpus:
     """Ordered collection of documents with content hashes."""
 
@@ -119,6 +147,9 @@ class Corpus:
         self._hashes: dict[str, str] = {}
         self._offsets: dict[str, int] = {}
         self._path: Path | None = None
+        self._source_signature: tuple[int, int] | None = None
+        self._max_malformed_fraction: float = 0.01
+        self._max_documents: int | None = None
         self.report = CorpusLoadReport()
 
     # ---- construction -------------------------------------------------
@@ -152,9 +183,11 @@ class Corpus:
 
     @classmethod
     def from_file(cls, path: str | Path, embed_template: str = DEFAULT_TEMPLATE, lazy: bool = False,
-                  max_malformed_fraction: float = 0.01) -> "Corpus":
+                  max_malformed_fraction: float = 0.01, max_documents: int | None = None) -> "Corpus":
         c = cls(embed_template)
         c._path = Path(path)
+        c._max_malformed_fraction = float(max_malformed_fraction)
+        c._max_documents = max_documents
         seen: Counter = Counter()
         keep_text = not lazy or c._path.suffix.lower() not in (".jsonl",)
         for off, rec in iter_raw_records(path):
@@ -171,6 +204,9 @@ class Corpus:
                 continue
             c._add(doc, off if (lazy and keep_text is False) else None, keep_text, seen)
             c.report.n_valid += 1
+            if max_documents is not None and c.report.n_valid >= max_documents:
+                log.warning("corpus load stopped at max_documents=%d", max_documents)
+                break
         r = c.report
         if r.n_read == 0:
             raise CorpusFormatError(f"corpus {path} contains no records")
@@ -183,7 +219,36 @@ class Corpus:
             log.error("corpus loaded with %d malformed records skipped (see report)", r.n_malformed)
         if r.n_valid == 0:
             raise CorpusFormatError("no valid documents")
+        try:
+            st = Path(path).stat()
+            c._source_signature = (int(st.st_size), int(st.st_mtime_ns))
+        except OSError:
+            c._source_signature = None
         return c
+
+    def refresh_if_changed(self) -> "Corpus":
+        """Reload the source corpus only when its size/mtime changed.
+
+        Methodology Sec. 5.2.2 requires a corpus check after each retrieval iteration.
+        Checking the cheap filesystem signature on every iteration avoids re-reading an
+        unchanged 20M+ passage file; a changed file is re-parsed and returned as a new
+        Corpus object. In-memory corpora have no source path and are returned unchanged.
+        """
+        if self._path is None:
+            return self
+        try:
+            st = self._path.stat()
+            sig = (int(st.st_size), int(st.st_mtime_ns))
+        except OSError:
+            return self
+        if self._source_signature == sig:
+            return self
+        log.info("corpus source changed; rebuilding corpus index from %s", self._path)
+        return Corpus.from_file(
+            self._path, embed_template=self.embed_template, lazy=not bool(self._docs),
+            max_malformed_fraction=self._max_malformed_fraction,
+            max_documents=self._max_documents,
+        )
 
     # ---- access -------------------------------------------------------
     def __len__(self) -> int:
@@ -193,8 +258,8 @@ class Corpus:
         return doc_id in self._hashes
 
     @property
-    def ids(self) -> list[str]:
-        return list(self._hashes)
+    def ids(self) -> CorpusIds:
+        return CorpusIds(self)
 
     @property
     def content_hashes(self) -> dict[str, str]:
@@ -211,6 +276,11 @@ class Corpus:
 
     def get_many(self, ids: Iterable[str]) -> list[Document]:
         return [self.get(i) for i in ids]
+
+    def iter_documents(self) -> Iterator[Document]:
+        """Stream documents without materialising the corpus in RAM."""
+        for did in self._hashes:
+            yield self.get(did)
 
     def embed_texts(self, ids: Iterable[str]) -> list[str]:
         return [self.get(i).embed_text(self.embed_template) for i in ids]

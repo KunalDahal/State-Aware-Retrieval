@@ -1,0 +1,14 @@
+# Real-LLM override: keep upstream MIGRES's request shape (OpenAI chat-completions, n=, same system
+# message) but send it to Gemini through Google's OpenAI-compatible endpoint.
+# Use after your real-run config, e.g.  --config configs/default.yaml configs/gemini.yaml
+# Requires in .env:
+#   GEMINI_API_KEY=...
+#   OPENAI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/
+llm:
+  provider: openai
+  model: gemini-3.5-flash-lite
+  api_key_env: GEMINI_API_KEY
+  base_url_env: OPENAI_BASE_URL
+  temperature: null      # Google recommends the Gemini 3.x default (1.0); upstream MIGRES sets none either
+  max_retries: 8
+  timeout_s: 120

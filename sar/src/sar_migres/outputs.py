@@ -1,4 +1,4 @@
-"""Machine-readable (JSON/JSONL/CSV) and human-readable (Markdown) run outputs."""
+"""Machine-readable and human-readable run outputs for SAR and baseline runs."""
 from __future__ import annotations
 
 import csv
@@ -9,12 +9,17 @@ from typing import Any, Iterable
 from .schemas import QuestionResult
 from .utils import atomic_write_text, dumps, utc_now_iso
 
-TRACE_COLUMNS = ["run_id", "question_id", "question", "iteration", "gaps", "evidence", "rank", "doc_id", "title",
-                 "snippet", "R_relevance", "C_gap_coverage", "N_novelty", "alpha", "beta", "gamma", "sar_score", "K",
-                 "n_docs_scored", "n_similarity_calcs", "embed_seconds", "score_seconds", "iteration_seconds",
-                 "passed_migres_filter", "evidence_added_after"]
-SUMMARY_COLUMNS = ["run_id", "question_id", "question", "status", "backend", "n_sar_iterations", "final_answer",
-                   "gold_answer", "total_retrieval_seconds", "elapsed_seconds", "error"]
+TRACE_COLUMNS = [
+    "run_id", "question_id", "question", "retriever", "score_name", "is_sar", "iteration", "gaps", "evidence",
+    "rank", "doc_id", "title", "snippet", "R_relevance", "C_gap_coverage", "N_novelty",
+    "alpha", "beta", "gamma", "retrieval_score", "K", "n_docs_scored", "n_similarity_calcs",
+    "embed_seconds", "score_seconds", "iteration_seconds", "passed_migres_filter", "evidence_added_after",
+]
+SUMMARY_COLUMNS = [
+    "run_id", "question_id", "question", "status", "backend", "retriever", "is_sar",
+    "n_retrieval_iterations", "termination_iteration", "final_answer", "gold_answer", "total_retrieval_seconds",
+    "elapsed_seconds", "llm_calls", "llm_estimated_tokens", "error",
+]
 
 
 class RunWriter:
@@ -23,21 +28,18 @@ class RunWriter:
         self.dir.mkdir(parents=True, exist_ok=True)
         (self.dir / "logs").mkdir(exist_ok=True)
 
-    # -- small json files ------------------------------------------------------------------
     def write_json(self, name: str, obj: Any) -> Path:
         p = self.dir / name
         atomic_write_text(p, json.dumps(obj, default=lambda o: o.to_dict() if hasattr(o, "to_dict") else repr(o),
-                                        indent=2, ensure_ascii=False))
+                                        indent=2, ensure_ascii=False, allow_nan=False))
         return p
 
     def read_json(self, name: str) -> Any:
         return json.loads((self.dir / name).read_text(encoding="utf-8"))
 
-    # -- incremental JSONL (crash-safe: one flushed line per finished question) -------------------
     def append_result(self, r: QuestionResult) -> None:
         with open(self.dir / "results.jsonl", "a", encoding="utf-8") as fh:
-            fh.write(dumps(r.to_dict()) + "\n")
-            fh.flush()
+            fh.write(dumps(r.to_dict()) + "\n"); fh.flush()
         with open(self.dir / "traces.jsonl", "a", encoding="utf-8") as fh:
             for t in r.traces:
                 fh.write(dumps(t.to_dict()) + "\n")
@@ -51,7 +53,7 @@ class RunWriter:
                 try:
                     rec = json.loads(line)
                 except json.JSONDecodeError:
-                    continue  # partial last line of an interrupted run -> question will be redone
+                    continue
                 if rec.get("status") in ("ok", "no_answer"):
                     ids.add(rec["question_id"])
         return ids
@@ -67,7 +69,6 @@ class RunWriter:
                     continue
         return out
 
-    # -- tables ---------------------------------------------------------------------------------
     def write_tables(self, results: Iterable[dict[str, Any]], tables_dir: str | Path | None = None) -> dict[str, Path]:
         results = list(results)
         trace_rows, summary_rows = [], []
@@ -76,25 +77,34 @@ class RunWriter:
             for t in traces:
                 after = t.get("migres_state_after", {})
                 kept = set(after.get("filter_kept_doc_ids", []))
-                for d in t["documents"]:
+                for d in t.get("documents", []):
                     trace_rows.append({
                         "run_id": r["run_id"], "question_id": r["question_id"], "question": r["question"],
-                        "iteration": t["iteration"], "gaps": json.dumps(t["gaps"], ensure_ascii=False),
-                        "evidence": json.dumps(t["evidence"], ensure_ascii=False), "rank": d["rank"],
-                        "doc_id": d["doc_id"], "title": d["title"], "snippet": d["text"],
-                        "R_relevance": d["relevance"], "C_gap_coverage": d["gap_coverage"], "N_novelty": d["novelty"],
-                        "alpha": t["alpha"], "beta": t["beta"], "gamma": t["gamma"], "sar_score": d["score"], "K": t["k"],
-                        "n_docs_scored": t["n_docs_scored"], "n_similarity_calcs": t["n_similarity_calcs"],
-                        "embed_seconds": t["embed_seconds"], "score_seconds": t["score_seconds"],
-                        "iteration_seconds": t["total_seconds"],
-                        "passed_migres_filter": (d["doc_id"] in kept) if "filter_kept_doc_ids" in after else "",
-                        "evidence_added_after": json.dumps(after.get("evidence_added", []), ensure_ascii=False)})
+                        "retriever": t.get("retriever", d.get("retriever", "")), "score_name": t.get("score_name", d.get("score_name", "")),
+                        "is_sar": t.get("is_sar", d.get("is_sar", False)), "iteration": t["iteration"],
+                        "gaps": json.dumps(t.get("gaps", []), ensure_ascii=False), "evidence": json.dumps(t.get("evidence", []), ensure_ascii=False),
+                        "rank": d.get("rank"), "doc_id": d.get("doc_id"), "title": d.get("title", ""), "snippet": d.get("text", ""),
+                        "R_relevance": d.get("relevance", ""), "C_gap_coverage": d.get("gap_coverage", ""), "N_novelty": d.get("novelty", ""),
+                        "alpha": t.get("alpha", ""), "beta": t.get("beta", ""), "gamma": t.get("gamma", ""),
+                        "retrieval_score": d.get("retrieval_score", d.get("score", "")), "K": t.get("k", ""),
+                        "n_docs_scored": t.get("n_docs_scored", ""), "n_similarity_calcs": t.get("n_similarity_calcs", ""),
+                        "embed_seconds": t.get("embed_seconds", ""), "score_seconds": t.get("score_seconds", ""),
+                        "iteration_seconds": t.get("total_seconds", ""),
+                        "passed_migres_filter": (d.get("doc_id") in kept) if "filter_kept_doc_ids" in after else "",
+                        "evidence_added_after": json.dumps(after.get("evidence_added", []), ensure_ascii=False),
+                    })
             summary_rows.append({
                 "run_id": r["run_id"], "question_id": r["question_id"], "question": r["question"], "status": r["status"],
-                "backend": r["backend"], "n_sar_iterations": len(traces), "final_answer": r.get("final_answer"),
+                "backend": r.get("backend", ""), "retriever": (traces[0].get("retriever") if traces else r.get("retriever", "")),
+                "is_sar": (traces[0].get("is_sar") if traces else r.get("is_sar", False)),
+                "n_retrieval_iterations": len(traces), "termination_iteration": (traces[-1].get("iteration") if traces else ""),
+                "final_answer": r.get("final_answer"),
                 "gold_answer": json.dumps(r.get("gold_answer"), ensure_ascii=False),
-                "total_retrieval_seconds": round(sum(t["total_seconds"] for t in traces), 6),
-                "elapsed_seconds": round(r.get("elapsed_seconds", 0.0), 6), "error": r.get("error") or ""})
+                "total_retrieval_seconds": round(sum(float(t.get("total_seconds", 0)) for t in traces), 6),
+                "elapsed_seconds": round(float(r.get("elapsed_seconds", 0.0)), 6),
+                "llm_calls": r.get("llm_calls", 0), "llm_estimated_tokens": r.get("llm_estimated_tokens", 0),
+                "error": r.get("error") or "",
+            })
         out = {}
         dirs = [self.dir] + ([Path(tables_dir)] if tables_dir else [])
         for d in dirs:
@@ -103,45 +113,36 @@ class RunWriter:
             for name, cols, rows in (("traces.csv", TRACE_COLUMNS, trace_rows), ("summary.csv", SUMMARY_COLUMNS, summary_rows)):
                 p = d / f"{prefix}{name}"
                 with open(p, "w", newline="", encoding="utf-8") as fh:
-                    w = csv.DictWriter(fh, fieldnames=cols)
-                    w.writeheader()
-                    w.writerows(rows)
+                    w = csv.DictWriter(fh, fieldnames=cols); w.writeheader(); w.writerows(rows)
                 out[f"{prefix}{name}"] = p
         return out
 
-    # -- human readable report -----------------------------------------------------------------------
     def write_report(self, meta: dict[str, Any], results: Iterable[dict[str, Any]]) -> Path:
         results = list(results)
-        L = [f"# SAR-MIGRES run report - `{meta.get('run_id')}`", "",
-             "> Development/design-stage output. It documents what was executed; it contains **no benchmark "
-             "evaluation** and no claim about SAR's effectiveness.", "",
-             "## Run", "",
-             f"- started: {meta.get('started')}   finished: {meta.get('finished')}   status: **{meta.get('status')}**",
-             f"- MIGRES backend: `{meta.get('migres', {}).get('backend')}` (reranker/filter: `{meta.get('migres', {}).get('reranker', 'n/a')}`)",
-             f"- LLM: provider=`{meta.get('llm_provider')}` model=`{meta.get('llm_model')}`",
-             f"- embedder: `{meta.get('embedder')}` (semantic: {meta.get('embedder_is_semantic')}); vector store: `{meta.get('vector_store')}`",
-             f"- corpus: `{meta.get('corpus', {}).get('path')}`  n_docs={meta.get('corpus', {}).get('n_docs')}  version=`{str(meta.get('corpus', {}).get('version'))[:16]}…`",
-             f"- SAR: alpha={meta.get('sar', {}).get('alpha')} beta={meta.get('sar', {}).get('beta')} gamma={meta.get('sar', {}).get('gamma')} K={meta.get('sar', {}).get('k')} (weights are development placeholders unless you set them)",
-             f"- seed: {meta.get('seed')}", ""]
+        ret = meta.get("retrieval", {})
+        L = [
+            f"# SAR-MIGRES run report - `{meta.get('run_id')}`", "",
+            f"- status: **{meta.get('status')}**", f"- retriever: `{ret.get('method')}` (SAR={ret.get('is_sar')})",
+            f"- MIGRES backend: `{meta.get('migres', {}).get('backend')}` (filter: `{meta.get('migres', {}).get('reranker', 'n/a')}`)",
+            f"- LLM: `{meta.get('llm_provider')}` / `{meta.get('llm_model')}`", f"- dataset: `{meta.get('dataset', {}).get('name')}` split=`{meta.get('dataset', {}).get('split')}`",
+            f"- corpus: `{meta.get('corpus', {}).get('path')}` n_docs={meta.get('corpus', {}).get('n_docs')}",
+            "",
+        ]
+        if ret.get("is_sar"):
+            s = meta.get("sar", {})
+            L += [f"SAR weights: alpha={s.get('alpha')} beta={s.get('beta')} gamma={s.get('gamma')} K={s.get('k')} weighting={s.get('weighting')}", ""]
         if meta.get("warnings"):
             L += ["## Warnings", ""] + [f"- {w}" for w in meta["warnings"]] + [""]
         for r in results:
             L += [f"## Question `{r['question_id']}`", "", f"**Q:** {r['question']}", "",
-                  f"- status: {r['status']}   final answer: `{r.get('final_answer')}`   gold: `{r.get('gold_answer')}`   time: {r.get('elapsed_seconds', 0):.3f}s"]
-            if r.get("error"):
-                L.append(f"- error: {r['error']}")
+                  f"status={r['status']} answer=`{r.get('final_answer')}` gold=`{r.get('gold_answer')}` time={r.get('elapsed_seconds',0):.3f}s"]
             for t in r.get("traces", []):
-                after = t.get("migres_state_after", {})
-                L += ["", f"### Iteration {t['iteration']}  (alpha={t['alpha']:.2f}, beta={t['beta']:.2f}, gamma={t['gamma']:.2f}, K={t['k']}, "
-                      f"{t['total_seconds'] * 1000:.1f} ms, {t['n_docs_scored']} docs scored)", "",
-                      f"- gaps G_t: {t['gaps'] or '∅'}", f"- evidence E_t: {t['evidence'] or '∅'}",
-                      f"- evidence added by MIGRES afterwards: {after.get('evidence_added', 'n/a')}", "",
-                      "| rank | doc_id | title | R | C | N | S_t | passed filter |", "|---|---|---|---|---|---|---|---|"]
-                kept = set(after.get("filter_kept_doc_ids", []))
-                for d in t["documents"]:
-                    L.append(f"| {d['rank']} | {d['doc_id']} | {d['title']} | {d['relevance']:.4f} | {d['gap_coverage']:.4f} | "
-                             f"{d['novelty']:.4f} | {d['score']:.4f} | {(d['doc_id'] in kept) if 'filter_kept_doc_ids' in after else 'n/a'} |")
-            L.append("")
-        p = self.dir / "report.md"
-        atomic_write_text(p, "\n".join(L))
-        return p
+                L += ["", f"### Iteration {t['iteration']} — `{t.get('retriever')}` / `{t.get('score_name')}`",
+                      f"gaps={t.get('gaps', []) or '∅'}; evidence={t.get('evidence', []) or '∅'}; time={t.get('total_seconds',0)*1000:.1f}ms", "",
+                      "| rank | doc_id | title | score | R | C | N | filter |", "|---:|---|---|---:|---:|---:|---:|:---:|"]
+                kept = set(t.get("migres_state_after", {}).get("filter_kept_doc_ids", []))
+                for d in t.get("documents", []):
+                    L.append(f"| {d.get('rank')} | {d.get('doc_id')} | {d.get('title','')} | {float(d.get('retrieval_score', d.get('score',0))):.4f} | "
+                             f"{float(d.get('relevance',0)):.4f} | {float(d.get('gap_coverage',0)):.4f} | {float(d.get('novelty',0)):.4f} | "
+                             f"{d.get('doc_id') in kept if 'filter_kept_doc_ids' in t.get('migres_state_after', {}) else 'n/a'} |")
+        p = self.dir / "report.md"; atomic_write_text(p, "\n".join(L)); return p

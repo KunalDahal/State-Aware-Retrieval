@@ -1,0 +1,106 @@
+# Default experimental configuration. Final labeled evaluation uses development data by default.
+embedding:
+  type: sentence_transformer
+  model_name: sentence-transformers/multi-qa-mpnet-base-cos-v1
+  expected_dim: 768
+  batch_size: 64
+  device: ""
+  embed_template: "{title}. {text}"
+
+vector_store:
+  type: local_memmap
+  on_cache_corruption: rebuild
+  remove_missing: true
+
+retrieval:
+  method: sar
+
+sar:
+  alpha: 0.4
+  beta: 0.3
+  gamma: 0.3
+  k: 5
+  weighting: static
+  dynamic_rule: ""
+  chunk_size: 50000
+
+baseline:
+  k: 5
+  cache_dir: data/cache/baselines
+  dpr_question_model: facebook/dpr-question_encoder-single-nq-base
+  dpr_context_model: facebook/dpr-ctx_encoder-single-nq-base
+  contriever_model: facebook/contriever
+  splade_model: naver/splade-cocondenser-ensembledistil
+  colbert_model: colbert-ir/colbertv2.0
+  batch_size: 16
+  max_length: 384
+  colbert_query_max_tokens: 32
+  colbert_doc_max_tokens: 180
+  score_chunk_size: 50000
+  mmr_lambda: 0.6
+  mmr_candidate_multiplier: 10
+  infogain_checkpoint: ""
+  infogain_candidate_k: 50
+
+llm:
+  provider: openai          # same call style as upstream MIGRES (OpenAI chat.completions); set LLM_MODEL
+  model: ""
+  model_env: LLM_MODEL
+  api_key_env: OPENAI_API_KEY
+  base_url_env: OPENAI_BASE_URL
+  temperature: 0.0
+  max_retries: 5
+  timeout_s: 120
+  max_workers: 4
+
+migres:
+  backend: upstream
+  repo_dir: ""
+  max_iter: 5
+  top_k: 5
+  relevance: 3.0
+  reranker: upstream_cross_encoder
+  ranker_model_path: BAAI/bge-reranker-base
+  sent_rerank: false
+  entail_judge: false
+  gpt_knowledge: true
+  add_demon: false
+  demon_path: ""
+  num_return: 1
+  gap_source: queries
+  strict_upstream_hash: false
+
+data:
+  corpus_path: data/processed/pooled_train_corpus.jsonl
+  corpus_lazy: true
+  max_malformed_fraction: 0.01
+  dataset: hotpotqa
+  dataset_path: data/raw/hotpot.json
+  dataset_paths:
+    wikihop: data/raw/wikihop.json
+    hotpotqa: data/raw/hotpot.json
+    musique: data/raw/musique.json
+    natural_questions: data/raw/nq.json
+    triviaqa: data/raw/triviaqa.json
+    strategyqa: data/raw/strategyqa.json
+  datasets: [wikihop, hotpotqa, musique, natural_questions, triviaqa, strategyqa]
+  limit: null
+  split: dev
+  final_split: dev
+  validation_fraction: 0.10
+  validation_seed: 13
+  corpus_source_split: train
+  corpus_chunk_max_tokens: 350
+  corpus_chunk_overlap_tokens: 50
+  max_documents: 100000
+
+run:
+  seed: 13
+  statistics_seed: 13
+  bootstrap_resamples: 2000
+  output_dir: outputs
+  name: sar_migres
+  log_level: INFO
+  resume: false
+  snippet_chars: 240
+  cache_root: data/cache

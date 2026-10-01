@@ -16,7 +16,7 @@ def main():
     cfg = load(a)
     setup_logging(cfg.run.log_level)
     corpus = Corpus.from_file(cfg.data.corpus_path, embed_template=cfg.embedding.embed_template, lazy=cfg.data.corpus_lazy,
-                              max_malformed_fraction=cfg.data.max_malformed_fraction)
+                              max_malformed_fraction=cfg.data.max_malformed_fraction, max_documents=cfg.data.max_documents)
     emb = build_embedder(cfg.embedding)
     store = build_vector_store(cfg.vector_store, emb, cfg.run.cache_root, rebuild=a.rebuild)
     rep = sync_corpus_embeddings(store, corpus, emb, cfg.embedding.batch_size, remove_missing=cfg.vector_store.remove_missing)

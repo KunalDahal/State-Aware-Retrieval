@@ -78,6 +78,9 @@ class TraceRecord:
     score_seconds: float
     total_seconds: float
     migres_state_after: dict[str, Any] = field(default_factory=dict)
+    retriever: str = "sar"
+    score_name: str = "sar_score"
+    is_sar: bool = True
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -95,6 +98,8 @@ class QuestionResult:
     error: str | None = None
     elapsed_seconds: float = 0.0
     backend: str = ""
+    llm_calls: int = 0
+    llm_estimated_tokens: int = 0
     migres_record: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:

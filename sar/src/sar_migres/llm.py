@@ -27,16 +27,37 @@ log = get_logger("llm")
 _DEFAULT_KEY_ENV = {"openai": "OPENAI_API_KEY", "gemini": "GEMINI_API_KEY"}
 
 
+
+class LLMStats:
+    def __init__(self):
+        self.calls = 0
+        self.estimated_input_tokens = 0
+        self.estimated_output_tokens = 0
+
+    def to_dict(self):
+        return {"calls": int(self.calls), "estimated_input_tokens": int(self.estimated_input_tokens),
+                "estimated_output_tokens": int(self.estimated_output_tokens),
+                "estimated_total_tokens": int(self.estimated_input_tokens + self.estimated_output_tokens)}
+
+
 class LLMClient(ABC):
     provider: str = "abstract"
     model: str = ""
+
+    def __init__(self):
+        self.stats = LLMStats()
 
     @abstractmethod
     def _generate(self, prompt: str, n: int) -> list[str]: ...
 
     def generate(self, prompt: str, n: int = 1) -> list[str]:
-        """Return ``n`` completions. Empty/None completions raise ``LLMResponseError``."""
+        """Return ``n`` completions and record call/token estimates for reproducibility."""
+        if not hasattr(self, "stats"):
+            self.stats = LLMStats()
         out = self._generate(prompt, n)
+        self.stats.calls += int(n)
+        self.stats.estimated_input_tokens += max(1, len(str(prompt).split())) * int(n)
+        self.stats.estimated_output_tokens += sum(max(1, len(str(o).split())) for o in out)
         if not out or any((not isinstance(o, str)) or not o.strip() for o in out):
             raise LLMResponseError(f"{self.provider}/{self.model}: empty or non-text response")
         return out
@@ -55,6 +76,7 @@ class OpenAIClient(LLMClient):
 
     def __init__(self, model: str, api_key_env: str = "OPENAI_API_KEY", base_url_env: str = "OPENAI_BASE_URL",
                  temperature: float = 0.0, timeout_s: float = 120.0, max_retries: int = 5, client=None):
+        super().__init__()
         self.model, self.temperature, self.max_retries = model, temperature, max_retries
         if client is None:
             try:
@@ -69,8 +91,9 @@ class OpenAIClient(LLMClient):
 
     def _generate(self, prompt: str, n: int) -> list[str]:
         def call():
+            extra = {} if self.temperature is None else {"temperature": self.temperature}
             r = self._client.chat.completions.create(
-                model=self.model, n=n, temperature=self.temperature,
+                model=self.model, n=n, **extra,
                 messages=[{"role": "system", "content": "You are ChatGPT, a model trained by OpenAI."},  # as in upstream MIGRES
                           {"role": "user", "content": prompt}])
             return [c.message.content for c in r.choices]
@@ -82,6 +105,7 @@ class GeminiClient(LLMClient):
 
     def __init__(self, model: str, api_key_env: str = "GEMINI_API_KEY", temperature: float = 0.0,
                  timeout_s: float = 120.0, max_retries: int = 5, client=None):
+        super().__init__()
         self.model, self.temperature, self.max_retries, self.timeout_s = model, temperature, max_retries, timeout_s
         if client is None:
             try:
@@ -111,6 +135,7 @@ class ScriptedLLM(LLMClient):
     model = "scripted"
 
     def __init__(self, handler: Callable[[str], str]):
+        super().__init__()
         self.handler, self.prompts = handler, []
 
     def _generate(self, prompt, n):
@@ -145,6 +170,7 @@ class DeterministicOfflineLLM(LLMClient):
     model = "offline-rule-based-v1"
 
     def __init__(self, answer_coverage: float = 0.8, max_info_items: int = 3):
+        super().__init__()
         self.answer_coverage, self.max_info_items = answer_coverage, max_info_items
 
     def _generate(self, prompt: str, n: int) -> list[str]:

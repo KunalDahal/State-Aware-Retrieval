@@ -16,7 +16,7 @@ def main():
         item = {"id": a.id, "question": a.question}
     else:
         from sar_migres.datasets import load_questions
-        item = load_questions(cfg.data.dataset, cfg.data.dataset_path, 1)[0]
+        item = load_questions(cfg.data.dataset, cfg.data.dataset_path, 1, split=cfg.data.split)[0]
     r = pipe.run_single(item)
     print(f"\nQ: {r.question}\nstatus={r.status} answer={r.final_answer!r} gold={r.gold_answer!r}")
     for t in r.traces:

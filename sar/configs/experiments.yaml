@@ -1,42 +1,73 @@
-# Experiment definitions for the OCTOBER stage (methodology Sec. 5.5-5.6).
-# STATUS: PLANNED / DISABLED. This file describes what will be run; no experiment listed
-# here has been executed and no result is claimed. Load it with yaml.safe_load; the current
-# code base only exposes the interfaces (see evaluation.py, baselines.py, optimization.py).
-status: planned_not_executed
+status: executable_plan
+protocol:
+  corpus_definition: "Pooled passages from the training split of all six datasets, deduplicated and chunked to <=350 tokenizer tokens with 50-token overlap, bounded at 100,000 passages. The corpus is frozen for each benchmark run."
+  tuning_split: "deterministic 10% holdout from training data"
+  final_labeled_split: "dev"
+  final_split_reason: "Many benchmark test sets do not publish answer labels; public dev is used as the labeled final split unless a labeled test file is explicitly supplied."
+  retrieval_metric_scope: "raw retriever ranking before the common MIGRES filter; iterative cumulative metrics are computed across raw retrieval sets."
+  downstream_scope: "final answer metrics are measured after the identical MIGRES filtering, evidence extraction, state update and stopping path."
+  answer_accuracy: "normalized exact-answer correctness with gold aliases; no LLM judge or contains-match rule."
+  significance: "paired bootstrap confidence intervals and paired randomisation tests over common question IDs."
 
-datasets: [wikihop, hotpotqa, musique, natural_questions, triviaqa, strategyqa]
 splits:
-  tuning: validation          # alpha/beta/gamma and K selected on validation data only
-  final: test                 # configuration frozen before test evaluation
+  tuning: validation_from_train
+  final_labeled: dev
 
-bayesian_optimization:
-  enabled: false
-  parameterisation: simplex_uv   # u,v in [0,1]; alpha=u, beta=(1-u)v, gamma=(1-u)(1-v)  (sum = 1 by construction)
-  init_points: 5
-  n_iter: 25
-  seed: 13
-  objective: null                # to be defined on validation data (e.g. retrieval or answer metric)
-
-k_grid: [3, 5, 10]               # "predefined values" - placeholders until the study fixes them
+parameter_selection:
+  validation_subset_per_dataset: 8
+  bayesian_optimization:
+    enabled: true
+    parameterisation: simplex_uv
+    init_points: 3
+    n_iter: 7
+    seed: 13
+    objective: mean_final_recall_at_k
+    scope: global_across_six_datasets
+    budget_note: "10 Bayesian trials per K; K grid has 3 values; each trial runs the full MIGRES loop on the same 8-question-per-dataset tuning subset."
+  k_grid: [3, 5, 10]
 
 weighting_modes:
-  static:  {enabled: false}
-  dynamic: {enabled: false, rule: null}   # rule not specified in methodology.tex
+  static:
+    enabled: true
+    rule: "alpha_t=alpha, beta_t=beta, gamma_t=gamma"
+  dynamic:
+    enabled: true
+    rule: state_balanced_v1
+    formula: "alpha_t:beta_t:gamma_t = 1 : (1 + |G_t|/(1+|E_t|)) : (1 + 1/(1+|E_t|)); renormalize to sum to 1."
+    note: "Project-defined extension because the supplied methodology names state-dependent weights but does not provide an equation."
 
-ablations:                       # Sec. 5.6.3
-  enabled: false
-  variants: [SAR-Full, SAR-Without-Relevance, SAR-Without-Gap, SAR-Without-Evidence, Question-Only]
+ablations:
+  enabled: true
+  retune_weights: false
+  variants: [SAR-Full, SAR-Without-Relevance, SAR-Without-Gap, SAR-Without-Evidence, Question-Only, Gap-Only, Novelty-Only]
+  protocol: "Freeze the full-SAR validation weights and K; for without-* variants renormalize the remaining two weights, while the single-signal variants use weight 1 on the retained signal. Question-Only uses the original question inside SAR; it is distinct from Sentence Transformer Search, which uses the current MIGRES query set."
 
-baselines:                       # Table 5.6
-  enabled: false
-  systems: [bm25, dpr, contriever, splade, colbertv2, sentence_transformer_search]
+baselines:
+  enabled: true
+  systems: [bm25, mmr, dpr, contriever, splade, colbertv2, sentence_transformer_search, infogain_rag]
+  protocol: same_migres_loop
+  stack_rule: "Every baseline replaces the complete SAR retrieval stack. Only SAR and sentence_transformer_search instantiate the project Sentence Transformer; all other baselines use their native representations. InfoGain-RAG additionally requires a compatible published checkpoint and uses BM25 only as its first-stage candidate retriever."
+  migres_filter_note: "The same MIGRES cross-encoder filtering stage is applied after every retriever, so raw retrieval ranking and post-filter downstream performance are reported separately."
 
 metrics:
-  retrieval: [recall_at_k, precision_at_k, hit_at_k, mrr, ndcg_at_k]   # only those supported by a dataset's ground truth
+  retrieval: [recall_at_k, precision_at_k, hit_at_k, mrr, ndcg_at_k]
   iterative: [cumulative_recall, marginal_recall_gain, new_document_rate, retrieval_overlap]
   answer: [exact_match, accuracy, token_f1]
-  cost: [retrieval_latency, documents_scored, similarity_calculations, retrieval_overhead_pct, memory]
+  cost: [index_build_time, retrieval_latency, embedding_time, scoring_time, documents_scored, similarity_calculations, iterations_to_termination, llm_calls, llm_estimated_tokens, retrieval_overhead_pct, memory]
+  statistics: [paired_bootstrap_ci, paired_permutation_pvalue]
 
-rgb:                             # Sec. 5.6.6
-  enabled: false
+rgb:
+  enabled: true
+  mode: downstream_only
   settings: [noise_robustness, negative_rejection, information_integration, counterfactual_robustness]
+  evaluator: RGBRobustnessEvaluation
+  note: "RGB is evaluated as an LLM/downstream robustness suite using its prepared cases. It is not treated as a retriever-corpus benchmark unless RGB passages are explicitly pooled into the evaluation corpus. Negative rejection is output-level because retrievers use fixed Top-K and have no abstention threshold."
+
+notebooks:
+  parameter_selection: 01_parameter_hyperparameter_selection.ipynb
+  baseline_comparison: 02_baseline_comparison.ipynb
+  ablation: 03_ablation_study.ipynb
+  retrieval_performance: 04_retrieval_performance.ipynb
+  iterative_state: 05_iterative_state_analysis.ipynb
+  downstream_rag: 06_downstream_rag_robustness.ipynb
+  computational_cost: 07_computational_cost.ipynb
