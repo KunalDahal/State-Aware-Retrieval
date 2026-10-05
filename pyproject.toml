@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sar-migres"
+version = "0.3.0"
+description = "State Aware Retrieval with swappable MIGRES retrieval baselines and executable experiment notebooks"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = [
+  "numpy>=1.26,<3",
+  "PyYAML>=6,<7",
+  "scipy>=1.11",   # imported at module level by baselines.py
+]
+
+[project.scripts]
+sar-run-single = "sar_migres.cli.run_single:main"
+sar-run-batch = "sar_migres.cli.run_batch:main"
+sar-build-embeddings = "sar_migres.cli.build_embeddings:main"
+sar-prepare-corpus = "sar_migres.cli.prepare_corpus:main"
+sar-validate-installation = "sar_migres.cli.validate_installation:main"
+
+[project.optional-dependencies]
+# real embeddings (methodology: sentence-transformers/multi-qa-mpnet-base-cos-v1)
+st       = ["sentence-transformers>=5.6.1,<7"]
+gemini   = ["google-genai>=2,<3"]
+openai   = ["openai>=3,<4"]
+# needed by the official MIGRES cross-encoder filter (Reranker) and NLI check
+migres   = ["torch>=2.13,<3", "transformers>=4.50,<6", "nltk>=3.9", "scikit-learn>=1.4", "scipy>=1.11", "tqdm>=4.66", "accelerate>=1.0"]
+# Experimental dependencies
+optim    = ["bayesian-optimization>=3.3,<4"]
+notebook = ["jupyter>=1.0", "ipykernel>=6", "nbformat>=5", "nbclient>=0.10", "pandas>=2", "datasets>=2.19", "huggingface_hub>=0.24", "ijson>=3.2", "requests", "tqdm>=4.66"]
+offline = ["numpy>=1.26,<3", "PyYAML>=6,<7", "scipy>=1.11"]
+dev      = ["pytest>=8", "nbformat>=5", "nbclient>=0.10", "ipykernel>=6", "bayesian-optimization>=3.3,<4"]
+all      = ["sentence-transformers>=5.6.1,<7", "google-genai>=2,<3", "openai>=3,<4", "torch>=2.13,<3", "transformers>=4.50,<6", "nltk>=3.9", "scikit-learn>=1.4", "tqdm>=4.66", "bayesian-optimization>=3.3,<4", "jupyter>=1.0", "ipykernel>=6", "nbformat>=5", "nbclient>=0.10", "pandas>=2", "datasets>=2.19", "huggingface_hub>=0.24", "ijson>=3.2", "requests", "accelerate>=1.0"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+filterwarnings = ["ignore::DeprecationWarning"]

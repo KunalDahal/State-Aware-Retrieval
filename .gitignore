@@ -1,0 +1,38 @@
+# Secrets / environments
+.env
+*.env
+!.env.example
+.venv/
+venv/
+
+# Python/build
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+ipynb_checkpoints/
+
+# Scientific data / caches
+data/raw/*
+!data/raw/.gitkeep
+data/interim/*
+!data/interim/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+data/cache/*
+!data/cache/.gitkeep
+
+# Outputs
+outputs/*
+!outputs/.gitkeep
+
+# External upstream
+external/MIGRES/**
+!external/MIGRES/.gitkeep
+
+# Local editor settings
+.vscode/
+
+src/MIGRES/

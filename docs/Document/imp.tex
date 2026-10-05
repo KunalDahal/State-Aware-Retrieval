@@ -1,0 +1,2642 @@
+% ============================================================
+% METHODOLOGY
+% SAR: STATE AWARE RETRIEVAL FOR ITERATIVE
+% RETRIEVAL-AUGMENTED GENERATION
+%
+% COMPILER:
+% pdfLaTeX
+%
+% REQUIRED FILES:
+% image1.png (college logo), gantt_chart.png (Gantt chart)
+% ============================================================
+
+\documentclass[12pt,a4paper]{report}
+
+% ============================================================
+% FONT
+% ============================================================
+
+\usepackage{newtxtext,newtxmath}
+
+% ============================================================
+% PAGE SIZE AND MARGINS
+% ============================================================
+
+\usepackage[
+    a4paper,
+    top=0.66in,
+    bottom=0.66in,
+    left=0.78in,
+    right=0.78in
+]{geometry}
+
+% ============================================================
+% PACKAGES
+% ============================================================
+
+\usepackage{setspace}
+\usepackage{graphicx}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage{ragged2e}
+\usepackage{amsmath}
+\usepackage{tikz}\usetikzlibrary{positioning,fit,calc,shapes.geometric}
+\usepackage{eso-pic}
+\usepackage{fancyhdr}
+\usepackage{tocloft}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{float}
+\usepackage[table]{xcolor}
+\usepackage{etoolbox}
+
+% TikZ styles used in the methodology architecture
+\tikzset{
+    block/.style={
+        rectangle,
+        draw,
+        rounded corners,
+        align=center,
+        minimum width=28mm,
+        minimum height=8mm
+    },
+    important/.style={
+        rectangle,
+        draw,
+        rounded corners,
+        align=center,
+        minimum width=32mm,
+        minimum height=9mm
+    },
+    arrow/.style={
+        ->,
+        >=stealth,
+        thick
+    }
+}
+\makeatletter
+\patchcmd{\thebibliography}
+  {\chapter*{\bibname}}
+  {}
+  {}
+  {}
+\makeatother
+
+\newcommand{\figplaceholder}[4]{%
+\begin{figure}[H]
+\centering
+\IfFileExists{#1}{\includegraphics[width=0.92\textwidth]{#1}}{%
+\fbox{\parbox[c][#2][c]{0.88\textwidth}{\centering\small [ Insert figure: \detokenize{#1} ]}}}
+\caption{#3}
+\label{fig:#4}
+\end{figure}}
+
+% ============================================================
+% GENERAL FORMATTING
+% ============================================================
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0pt}
+\AtBeginDocument{\setlength{\parindent}{0pt}}
+
+\onehalfspacing
+
+\hypersetup{
+    colorlinks=false,
+    hidelinks
+}
+
+% ============================================================
+% PAGE BORDER
+%
+% Border is deliberately inside the physical page edge.
+% It is applied to EVERY page.
+% ============================================================
+
+\AddToShipoutPictureBG{%
+    \begin{tikzpicture}[remember picture,overlay]
+        \draw[line width=0.5pt]
+        ([xshift=0.30in,yshift=-0.30in]current page.north west)
+        rectangle
+        ([xshift=-0.30in,yshift=0.30in]current page.south east);
+    \end{tikzpicture}%
+}
+
+% ============================================================
+% HEADER / FOOTER
+%
+% Department name:
+% TOP RIGHT
+% SLIGHTLY ABOVE THE PAGE BORDER
+%
+% Page number:
+% CENTERED
+% SLIGHTLY RAISED FROM BOTTOM
+% ============================================================
+
+\pagestyle{fancy}
+
+\fancyhf{}
+
+% ------------------------------------------------------------
+% Department name -- top right
+% ------------------------------------------------------------
+
+\fancyhead[R]{%
+    \raisebox{0.22in}{%
+        \fontsize{10}{12}\selectfont
+        Department of Computer Engineering
+    }%
+}
+
+% ------------------------------------------------------------
+% Page number -- centered and raised
+% ------------------------------------------------------------
+
+\fancyfoot[C]{%
+    \raisebox{0.18in}{%
+        \fontsize{10}{12}\selectfont
+        \thepage
+    }%
+}
+
+% ------------------------------------------------------------
+% Remove header/footer lines
+% ------------------------------------------------------------
+
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% ------------------------------------------------------------
+% Header height
+% ------------------------------------------------------------
+
+\setlength{\headheight}{15pt}
+
+
+% ============================================================
+% CHAPTER-OPENING PAGES
+%
+% LaTeX normally changes chapter-opening pages to the
+% "plain" style. Make it identical to the normal page style.
+% ============================================================
+
+\fancypagestyle{plain}{
+    \fancyhf{}
+
+    % Department name -- top right
+    \fancyhead[R]{%
+        \raisebox{0.22in}{%
+            \fontsize{10}{12}\selectfont
+            Department of Computer Engineering
+        }%
+    }
+
+    % Page number -- centered and raised
+    \fancyfoot[C]{%
+        \raisebox{0.18in}{%
+            \fontsize{10}{12}\selectfont
+            \thepage
+        }%
+    }
+
+    \renewcommand{\headrulewidth}{0pt}
+    \renewcommand{\footrulewidth}{0pt}
+}
+
+% ============================================================
+% HEADING FONT SIZES (Times New Roman style)
+%   normal text   : 12 pt
+%   subsubsection : 12 pt bold
+%   subsection    : 14 pt bold  (sub-topic)
+%   section       : 16 pt bold  (main topic)
+%   chapter title : 22 pt bold, right aligned
+% ============================================================
+
+\makeatletter
+\renewcommand\section{\@startsection{section}{1}{\z@}%
+    {-3.5ex \@plus -1ex \@minus -.2ex}%
+    {2.3ex \@plus.2ex}%
+    {\normalfont\fontsize{16}{19}\selectfont\bfseries}}
+\renewcommand\subsection{\@startsection{subsection}{2}{\z@}%
+    {-3.25ex\@plus -1ex \@minus -.2ex}%
+    {1.5ex \@plus .2ex}%
+    {\normalfont\fontsize{14}{17}\selectfont\bfseries}}
+\renewcommand\subsubsection{\@startsection{subsubsection}{3}{\z@}%
+    {-3.25ex\@plus -1ex \@minus -.2ex}%
+    {1.5ex \@plus .2ex}%
+    {\normalfont\fontsize{12}{15}\selectfont\bfseries}}
+\makeatother
+
+% ============================================================
+% TITLE COMMANDS
+% ============================================================
+
+\newcommand{\fronttitle}[1]{
+    \begin{center}
+        {\fontsize{18}{21}\selectfont\bfseries #1\par}
+    \end{center}
+    \vspace{0.12in}
+}
+
+\newcommand{\chaptertitle}[2]{
+    \begin{flushright}
+        {\fontsize{22}{26}\selectfont\bfseries CHAPTER #1\par}
+        \vspace{0.10in}
+        {\fontsize{22}{26}\selectfont\bfseries #2\par}
+    \end{flushright}
+    \vspace{0.12in}
+}
+
+% Right-aligned main title without a chapter number (used for REFERENCES)
+\newcommand{\righttitle}[1]{
+    \begin{flushright}
+        {\fontsize{22}{26}\selectfont\bfseries #1\par}
+    \end{flushright}
+    \vspace{0.12in}
+}
+
+% ============================================================
+% DOCUMENT
+% ============================================================
+
+\begin{document}
+
+% PAGE 1 -- TITLE PAGE
+% ============================================================
+
+\begin{titlepage}
+\thispagestyle{empty}
+\begin{center}
+
+\vspace*{0.58in}
+
+{\fontsize{16}{19}\selectfont\bfseries
+SAR: State Aware Retrieval\\for Iterative Retrieval Augmented Generation\par}
+
+\vspace{0.18in}
+
+{\fontsize{12}{18}\selectfont
+A Project Report Submitted in\par}
+\vspace{0.12in}
+{\fontsize{12}{18}\selectfont
+partial fulfillment of requirements for the degree of\par}
+\vspace{0.12in}
+{\fontsize{12}{18}\selectfont
+Bachelor of Technology\par}
+\vspace{0.10in}
+{\fontsize{12}{18}\selectfont\bfseries\itshape
+In\par}
+\vspace{0.08in}
+{\fontsize{12}{18}\selectfont
+Computer Engineering\par}
+\vspace{0.10in}
+{\fontsize{12}{18}\selectfont\bfseries\itshape
+By\par}
+\vspace{0.08in}
+{\fontsize{12}{18}\selectfont
+Kunal Dahal (22CSEC17)\par
+Aniket Manger (22CSEC23)\par
+Suman Chettri (22CSEC44)\par}
+
+\vspace{0.10in}
+
+{\fontsize{12}{18}\selectfont\itshape
+Under the supervision of\par}
+\vspace{0.06in}
+{\fontsize{14}{17}\selectfont\bfseries
+Mr. Anmol Pandey\par}
+\vspace{0.04in}
+{\fontsize{12}{18}\selectfont
+Assistant Professor\par}
+\vspace{0.04in}
+{\fontsize{12}{18}\selectfont
+Computer Engineering Department\par}
+\vspace{0.12in}
+
+\IfFileExists{image1.png}{\includegraphics[width=0.82in]{image1.png}}{\fbox{\rule{0pt}{0.82in}\rule{0.82in}{0pt}}}
+
+\vspace{0.10in}
+{\fontsize{14}{17}\selectfont\bfseries
+Department Of Computer Engineering\par}
+\vspace{0.04in}
+{\fontsize{14}{17}\selectfont\bfseries
+Sikkim Institute of Science and Technology\par}
+\vspace{0.04in}
+{\fontsize{14}{17}\selectfont\bfseries
+(A constituent college of Sikkim University)\par}
+\vspace{0.04in}
+{\fontsize{14}{17}\selectfont\bfseries
+2026\par}
+
+\end{center}
+\end{titlepage}
+
+% ============================================================
+\pagenumbering{roman}
+
+% PAGE 2 -- ABSTRACT
+% ============================================================
+
+\fronttitle{ABSTRACT}
+\justifying
+
+Retrieval-Augmented Generation (RAG) uses external documents to help large language models answer complex questions. However, during iterative retrieval, documents that are relevant to the original question may repeat information that has already been retrieved, while other required information is still missing. This leads to redundant retrieval and incomplete evidence collection.
+
+This project proposes \textbf{State Aware Retrieval (SAR)} for iterative RAG. SAR uses a Sentence Transformer to represent the question, information gaps, collected evidence, and documents in a common semantic space. Based on these representations, a state aware scoring equation assigns a score to every document. The equation combines three factors: relevance to the original question, coverage of the current information gap, and novelty with respect to the evidence already collected. This allows retrieval to consider both what is relevant to the question and what information is still required. The documents are then ranked by their final scores, and the Top-$K$ documents with the highest scores are selected for the next retrieval step. SAR therefore selects documents according to the current retrieval state instead of relying only on the original question.
+
+The proposed approach aims to reduce redundant retrieval and to select more complementary evidence for complex question answering. Its effectiveness will be studied through a systematic evaluation of retrieval quality and answer quality.
+
+\vspace{0.10in}
+\textbf{Keywords:} Retrieval-Augmented Generation, Information Retrieval, Iterative Retrieval, Multi-Hop Question Answering.
+\clearpage
+
+% ============================================================
+
+% PAGE 3
+% TABLE OF CONTENTS
+% ============================================================
+
+\fronttitle{TABLE OF CONTENTS}
+
+\begin{center}
+
+\renewcommand{\arraystretch}{1.45}
+
+\makebox[\textwidth][c]{%
+\begin{tabular}{|>{\centering\arraybackslash}p{0.55in}|
+                >{\centering\arraybackslash}p{5.5in}|
+                >{\centering\arraybackslash}p{0.55in}|}
+\hline
+\textbf{CHP NO.} & \textbf{TOPICS} & \textbf{PAGE NO.} \\
+\hline
+& ABSTRACT & i \\
+\hline
+& TABLE OF CONTENTS & ii \\
+\hline
+& LIST OF TABLES & \pageref{lot} \\
+\hline
+& LIST OF FIGURES & \pageref{lof} \\
+\hline
+1. & INTRODUCTION & \pageref{ch:1} \\
+\hline
+2. & LITERATURE SURVEY & \pageref{ch:2}--\pageref{ch:2:end} \\
+\hline
+3. & PROBLEM DEFINITION & \pageref{ch:3} \\
+\hline
+4. & OBJECTIVES & \pageref{ch:4} \\
+\hline
+5. & METHODOLOGY & \pageref{ch:5}--\pageref{ch:5:end} \\
+\hline
+6. & SOFTWARE AND HARDWARE REQUIREMENTS & \pageref{ch:6}--\pageref{ch:6:end} \\
+\hline
+7. & IMPLEMENTATION & \pageref{ch:7}--\pageref{ch:7:end} \\
+\hline
+8. & APPLICATIONS & \pageref{ch:8} \\
+\hline
+9. & GANTT CHART & \pageref{ch:9} \\
+\hline
+10. & CONCLUSION & \pageref{ch:10} \\
+\hline
+& REFERENCES & \pageref{ch:refs} \\
+\hline
+\end{tabular}%
+}
+
+\end{center}
+\clearpage
+
+
+
+% ============================================================
+
+
+% PAGE 4
+% LIST OF TABLES AND FIGURES
+% ============================================================
+
+\fronttitle{LIST OF TABLES}
+\label{lot}
+
+\begin{center}
+
+\renewcommand{\arraystretch}{1.35}
+
+\makebox[\textwidth][c]{%
+\begin{tabular}{|>{\centering\arraybackslash}p{0.85in}|
+                >{\centering\arraybackslash}p{4.95in}|
+                >{\centering\arraybackslash}p{0.75in}|}
+
+\hline
+\textbf{TABLE NO.} & \textbf{TITLE} & \textbf{PAGE NO.} \\
+\hline
+2.1 & Literature Survey 1 & \pageref{tab:lit1} \\
+\hline
+2.2 & Literature Survey 2 & \pageref{tab:lit2} \\
+\hline
+2.3 & Literature Survey 3 & \pageref{tab:lit3} \\
+\hline
+2.4 & Literature Survey 4 & \pageref{tab:lit4} \\
+\hline
+2.5 & Literature Survey 5 & \pageref{tab:lit5} \\
+\hline
+5.1 & State Aware Retrieval Configuration & \pageref{tab:sar-settings} \\
+\hline
+5.2 & State Aware Retrieval Hyperparameters & \pageref{tab:sar-hyperparameters} \\
+\hline
+5.3 & Models used in SAR, MIGRES, and baseline systems & \pageref{tab:models} \\
+\hline
+5.4 & Information Retrieval Baseline Comparison & \pageref{tab:baseline-comparison} \\
+\hline
+6.1 & Software Requirements & \pageref{tab:software-requirements} \\
+\hline
+6.2 & Modules Description & \pageref{tab:module-description} \\
+\hline
+7.1 & Hardware Environment & \pageref{tab:hardware-environment} \\
+\hline
+7.2 & Software Environment & \pageref{tab:software-environment} \\
+\hline
+7.3 & Experiment Notebooks Used by the Implementation & \pageref{tab:impl-experiments} \\
+\hline
+\end{tabular}%
+}
+
+\end{center}
+
+\clearpage
+
+\fronttitle{LIST OF FIGURES}
+\label{lof}
+
+\begin{center}
+
+\renewcommand{\arraystretch}{1.35}
+
+\makebox[\textwidth][c]{%
+\begin{tabular}{|>{\centering\arraybackslash}p{0.95in}|
+                >{\centering\arraybackslash}p{4.85in}|
+                >{\centering\arraybackslash}p{0.75in}|}
+
+\hline
+\textbf{FIGURE NO.} & \textbf{TITLE} & \textbf{PAGE NO.} \\
+\hline
+5.1 & Architecture of State Aware Retrieval & \pageref{fig:sar-architecture} \\
+\hline
+5.2 & Operational Flow of State Aware Retrieval & \pageref{fig:sar-flow} \\
+\hline
+7.1 & Overall System Implementation Flow & \pageref{fig:system-implementation} \\
+\hline
+7.2 & Corpus Preparation and Embedding Pipeline & \pageref{fig:impl-corpus-flow} \\
+\hline
+7.3 & MIGRES State and Processing Flow with SAR Integration & \pageref{fig:migres-state-processing} \\
+\hline
+7.4 & Architecture of the SAR Retrieval Module & \pageref{fig:sar-module} \\
+\hline
+9.1 & Gantt Chart & \pageref{fig:gantt} \\
+\hline
+\end{tabular}%
+}
+
+\end{center}
+\clearpage
+
+
+
+% ============================================================
+
+
+% CHAPTER 1 -- INTRODUCTION
+% ============================================================
+
+\pagenumbering{arabic}
+\setcounter{page}{1}
+\addcontentsline{toc}{chapter}{1. INTRODUCTION}
+\chaptertitle{1}{INTRODUCTION}
+\label{ch:1}
+\justifying
+
+Retrieval-Augmented Generation (RAG) is a technique that combines information retrieval with large language models to improve question answering. Instead of depending only on the information stored inside a language model, RAG retrieves relevant information from external documents and uses it to generate an answer \cite{lewis2020rag}. This makes RAG useful for tasks where the required information is spread across different documents.
+
+However, answering complex questions is not as simple as finding documents that are related to the question. Some questions need several pieces of information, and the first retrieval step may provide only part of what is required. Multi-hop question answering benchmarks and iterative retrieval methods show that such questions can require evidence from multiple passages or documents and repeated retrieval steps \cite{yang2018hotpotqa,trivedi2022musique,yadav2020iterative}. If the retrieval system keeps selecting documents mainly because they are related to the original question, it may retrieve similar information again and again instead of finding the missing evidence.
+
+\textbf{MIGRES (Missing Information Guided Retrieve-Extraction-Solving)} provides a framework for handling this type of iterative information retrieval. It keeps track of the information already collected and identifies the information that is still required to answer the question \cite{wang2025migres}. This creates an opportunity to improve the retrieval stage by considering not only the original question, but also the current information gap and the evidence already collected. Related work on relevant information gain also supports reducing redundant evidence while preserving useful information for RAG \cite{pickett2024better}.
+
+This project proposes State Aware Retrieval (SAR), a retrieval method that improves document selection in such iterative RAG systems. The main idea is to select documents based on three things: their relevance to the question, their usefulness for covering the missing information, and the amount of new information they provide compared with the evidence already collected.
+
+The proposed approach will be studied within the MIGRES framework and evaluated on question-answering datasets. The overall aim of this project is to examine whether making the retrieval process aware of the current information state can help RAG systems retrieve more useful and complementary evidence for complex questions.
+
+The rest of this report is organized as follows. Chapter~2 reviews the related work, Chapter~3 defines the problem, and Chapter~4 states the objectives. Chapter~5 presents the methodology of SAR, including its mathematical formulation and experimental design, and Chapter~6 lists the software and hardware requirements. Chapter~7 describes the implementation, Chapter~8 lists the applications, Chapter~9 gives the project schedule, and Chapter~10 concludes the report.
+
+\clearpage
+
+% ============================================================
+
+
+% CHAPTER 2 -- LITERATURE SURVEY
+% ============================================================
+
+\setcounter{table}{0}
+\renewcommand{\thetable}{2.\arabic{table}}
+\renewcommand{\theHtable}{chapter2.\arabic{table}}
+\setcounter{figure}{0}
+\renewcommand{\thefigure}{2.\arabic{figure}}
+\renewcommand{\theHfigure}{chapter2.\arabic{figure}}
+
+\addcontentsline{toc}{chapter}{2. LITERATURE SURVEY}
+\chaptertitle{2}{LITERATURE SURVEY}
+\label{ch:2}
+
+% ------------------------------------------------------------
+% PAPER 1
+% ------------------------------------------------------------
+\begin{longtable}{|p{1.25in}|p{5.15in}|}
+\caption{Literature Survey 1}\label{tab:lit1}\\
+\hline
+\hline
+\textbf{Name of paper} & Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks \cite{lewis2020rag} \\ \hline
+
+\textbf{Authors} & Patrick Lewis, Ethan Perez, Aleksandra Piktus, Fabio Petroni, Vladimir Karpukhin, Naman Goyal, Heinrich K\"uttler, Mike Lewis, Wen-tau Yih, Tim Rockt\"aschel, Sebastian Riedel, and Douwe Kiela \\ \hline
+
+\textbf{Publication Details} & Advances in Neural Information Processing Systems 33 (NeurIPS), 2020, pp. 9459--9474. \\ \hline
+
+\textbf{Research Findings} &
+\begin{itemize}[leftmargin=0.18in,itemsep=0.05in,topsep=0pt,parsep=0pt]
+\item RAG combines information stored in a language model with information retrieved from external documents.
+\item Retrieved passages help the model answer questions that require outside knowledge.
+\item The approach shows that retrieval can improve the performance of language generation for knowledge-intensive tasks.
+\item The work provides a basic foundation for modern retrieval-augmented generation systems.
+\end{itemize} \\ \hline
+
+\textbf{Research Gap} &
+\begin{itemize}[leftmargin=0.18in,itemsep=0.05in,topsep=0pt,parsep=0pt]
+\item The main retrieval process is based on finding passages relevant to the given question.
+\item It does not mainly focus on identifying which information is still missing after previous evidence has been retrieved.
+\item The work does not specifically study how retrieval can change according to the information already collected.
+\end{itemize} \\ \hline
+
+\textbf{Relevance with Our Work} &
+\begin{itemize}[leftmargin=0.18in,itemsep=0.05in,topsep=0pt,parsep=0pt]
+\item This paper provides the basic RAG background for our project.
+\item It supports the use of external documents to provide additional information to language models.
+\item Our work builds on this general retrieval setting by studying retrieval in a more iterative information-seeking process.
+\end{itemize} \\ \hline
+\end{longtable}
+\clearpage
+
+
+% ------------------------------------------------------------
+% PAPER 2
+% ------------------------------------------------------------
+\begin{longtable}{|p{1.25in}|p{5.15in}|}
+\caption{Literature Survey 2}\label{tab:lit2}\\
+\hline
+\hline
+
+\textbf{Name of paper} & Leveraging Passage Retrieval with Generative Models for Open Domain Question Answering \cite{izacard2021fid} \\ \hline
+
+\textbf{Authors} & Gautier Izacard and Edouard Grave \\ \hline
+
+\textbf{Publication Details} & Proceedings of the 16th Conference of the European Chapter of the Association for Computational Linguistics (EACL), 2021, pp. 874--880. \\ \hline
+
+\textbf{Research Findings} &
+\begin{itemize}[leftmargin=0.18in,itemsep=0.05in,topsep=0pt,parsep=0pt]
+\item The method retrieves multiple passages and provides them to a generative model.
+\item The model can use information from several passages to answer a question.
+\item Using useful information from multiple retrieved passages can improve question-answering performance.
+\item The work shows the importance of selecting and using several relevant pieces of evidence.
+\end{itemize} \\ \hline
+
+\textbf{Research Gap} &
+\begin{itemize}[leftmargin=0.18in,itemsep=0.05in,topsep=0pt,parsep=0pt]
+\item The focus is mainly on how a generative model uses multiple retrieved passages.
+\item It does not mainly study how the retrieval process should identify information that is missing from earlier evidence.
+\item The retrieved passages are not selected according to a changing information state across multiple retrieval steps.
+\end{itemize} \\ \hline
+
+\textbf{Relevance with Our Work} &
+\begin{itemize}[leftmargin=0.18in,itemsep=0.05in,topsep=0pt,parsep=0pt]
+\item This work supports the importance of collecting multiple useful pieces of evidence.
+\item It is indirectly related to our goal of improving the usefulness of retrieved documents.
+\item Our project further considers how the current information need can be used when selecting documents during iterative retrieval.
+\end{itemize} \\ \hline
+\end{longtable}
+\clearpage
+
+
+% ------------------------------------------------------------
+% PAPER 3
+% ------------------------------------------------------------
+\begin{longtable}{|p{1.25in}|p{5.15in}|}
+\caption{Literature Survey 3}\label{tab:lit3}\\
+\hline
+\hline
+
+\textbf{Name of paper} & LLMs Know What They Need: Leveraging a Missing Information Guided Framework to Empower Retrieval-Augmented Generation \cite{wang2025migres} \\ \hline
+
+\textbf{Authors} & Keheng Wang, Feiyu Duan, Peiguang Li, Sirui Wang, and Xunliang Cai \\ \hline
+
+\textbf{Publication Details} & Proceedings of the 31st International Conference on Computational Linguistics (COLING), 2025, pp. 2379--2400. \\ \hline
+
+\textbf{Research Findings} &
+\begin{itemize}[leftmargin=0.18in,itemsep=0.05in,topsep=0pt,parsep=0pt]
+\item MIGRES identifies information that is still missing after processing the retrieved evidence.
+\item The identified missing information is used to guide the next retrieval step.
+\item The framework performs retrieval and evidence processing in multiple steps.
+\item The approach is designed for questions that require several pieces of information.
+\end{itemize} \\ \hline
+
+\textbf{Research Gap} &
+\begin{itemize}[leftmargin=0.18in,itemsep=0.05in,topsep=0pt,parsep=0pt]
+\item The framework mainly focuses on identifying missing information and guiding the next retrieval query.
+\item There is still room to study how candidate documents can be ranked using both the missing information and the evidence already collected.
+\item Different document-ranking strategies may affect which evidence is selected during the iterative process.
+\end{itemize} \\ \hline
+
+\textbf{Relevance with Our Work} &
+\begin{itemize}[leftmargin=0.18in,itemsep=0.05in,topsep=0pt,parsep=0pt]
+\item MIGRES provides an important background for understanding missing information during iterative RAG.
+\item It supports the idea that later retrieval should focus on information that is still required.
+\item Our project uses this general idea as motivation for studying a state aware retrieval approach that scores and ranks candidate documents.
+\item The paper provides the main framework in which our proposed approach can be investigated.
+\end{itemize} \\ \hline
+\end{longtable}
+\clearpage
+
+
+% ------------------------------------------------------------
+% PAPER 4
+% ------------------------------------------------------------
+\begin{longtable}{|p{1.25in}|p{5.15in}|}
+\caption{Literature Survey 4}\label{tab:lit4}\\
+\hline
+\hline
+
+\textbf{Name of paper} & Unsupervised Alignment-based Iterative Evidence Retrieval for Multi-hop Question Answering \cite{yadav2020iterative} \\ \hline
+
+\textbf{Authors} & Vikas Yadav, Steven Bethard, and Mihai Surdeanu \\ \hline
+
+\textbf{Publication Details} & Proceedings of the 58th Annual Meeting of the Association for Computational Linguistics (ACL), 2020, pp. 4514--4525. \\ \hline
+
+\textbf{Research Findings} &
+\begin{itemize}[leftmargin=0.18in,itemsep=0.05in,topsep=0pt,parsep=0pt]
+\item AIR is an iterative method designed to retrieve evidence for multi-hop questions.
+\item The retrieval process changes after each step instead of using the same query throughout.
+\item Later retrieval focuses on information that is not already covered by the available evidence.
+\item The work shows that iterative retrieval can help collect complementary evidence.
+\end{itemize} \\ \hline
+
+\textbf{Research Gap} &
+\begin{itemize}[leftmargin=0.18in,itemsep=0.05in,topsep=0pt,parsep=0pt]
+\item The method mainly focuses on changing the retrieval query based on previously collected information.
+\item It does not fully explore a separate ranking stage that considers relevance, missing information, and existing evidence together.
+\item There is room to investigate other ways of selecting complementary documents during iterative retrieval.
+\end{itemize} \\ \hline
+
+\textbf{Relevance with Our Work} &
+\begin{itemize}[leftmargin=0.18in,itemsep=0.05in,topsep=0pt,parsep=0pt]
+\item AIR is closely related to the idea of avoiding already-covered information.
+\item It supports the importance of retrieving complementary evidence in multi-step question answering.
+\item This provides useful background for studying a retrieval method that considers the current information state.
+\end{itemize} \\ \hline
+\end{longtable}
+\clearpage
+
+% ------------------------------------------------------------
+% PAPER 5
+% ------------------------------------------------------------
+\begin{longtable}{|p{1.25in}|p{5.15in}|}
+\caption{Literature Survey 5}\label{tab:lit5}\\
+\hline
+\hline
+
+\textbf{Name of paper} & Better RAG using Relevant Information Gain \cite{pickett2024better} \\ \hline
+
+\textbf{Authors} & Marc Pickett, Jeremy Hartman, Ayan Kumar Bhowmick, Raquib-ul Alam, and Aditya Vempaty \\ \hline
+
+\textbf{Publication Details} & arXiv preprint, 2024, arXiv:2407.12101. \\ \hline
+
+\textbf{Research Findings} &
+\begin{itemize}[leftmargin=0.18in,itemsep=0.05in,topsep=0pt,parsep=0pt]
+\item The paper studies how relevant information gain can be used to improve document selection in RAG.
+\item It aims to reduce redundant information while keeping the retrieved information relevant.
+\item The approach gives importance to documents that provide useful information not already present in the selected evidence.
+\item The work highlights the importance of balancing relevance with the usefulness of new information.
+\end{itemize} \\ \hline
+
+\textbf{Research Gap} &
+\begin{itemize}[leftmargin=0.18in,itemsep=0.05in,topsep=0pt,parsep=0pt]
+\item The main focus is on selecting useful and non-redundant information from retrieved passages.
+\item It does not mainly focus on a changing information need across several retrieval steps.
+\item The current missing information can provide an additional signal for deciding which document should be selected next.
+\end{itemize} \\ \hline
+
+\textbf{Relevance with Our Work} &
+\begin{itemize}[leftmargin=0.18in,itemsep=0.05in,topsep=0pt,parsep=0pt]
+\item This work provides useful background for reducing repeated or unnecessary evidence.
+\item It supports the idea that document selection should consider more than simple relevance.
+\item The concept of useful new information is indirectly related to our goal of selecting documents that help cover the current information gap.
+\end{itemize} \\ \hline
+
+\end{longtable}
+\label{ch:2:end}
+\clearpage
+
+% ============================================================
+
+
+% CHAPTER 3 -- PROBLEM DEFINITION
+% ============================================================
+
+\addcontentsline{toc}{chapter}{3. PROBLEM DEFINITION}
+\chaptertitle{3}{PROBLEM DEFINITION}
+\label{ch:3}
+\justifying
+
+The literature survey shows that existing iterative retrieval methods have the following limitations in document selection:
+
+\begin{enumerate}[leftmargin=0.30in,itemsep=0.12in,parsep=0pt]
+\item
+Documents are mainly selected by their similarity to the original question, so later retrieval steps keep returning documents similar to those already found.
+
+\item
+The information that is still missing is not used in document selection, so documents that can fill the gap are not given priority.
+
+\item
+Previously collected evidence is not considered, so redundant documents are selected while complementary ones are missed.
+
+\item
+There is no scoring approach that combines relevance, gap coverage, and novelty to rank documents at each retrieval step.
+
+\end{enumerate}
+\clearpage
+
+
+% ============================================================
+
+
+% CHAPTER 4 -- OBJECTIVES
+% ============================================================
+
+\addcontentsline{toc}{chapter}{4. OBJECTIVES}
+\chaptertitle{4}{OBJECTIVES}
+\label{ch:4}
+\justifying
+
+To address the problems defined in Chapter~3, the objectives of this project are:
+
+\begin{enumerate}[leftmargin=0.30in,itemsep=0.12in,parsep=0pt]
+
+\item
+To keep the selected documents related to the original question without depending on it alone, so that later retrieval steps do not keep returning documents similar to those already found.
+
+\item
+To give priority to documents that provide the missing information, so that documents able to fill the gap are ranked higher.
+
+\item
+To lower the rank of documents that repeat the evidence already collected, so that complementary documents are selected instead of redundant ones.
+
+\item
+To propose a scoring approach that combines relevance, gap coverage, and novelty to rank documents at each retrieval step, and to validate it through experiments.
+
+\end{enumerate}
+\clearpage
+
+
+% ============================================================
+
+
+% ============================================================
+
+% CHAPTER 5
+% SOLUTION STRATEGY / METHODOLOGY
+% ============================================================
+
+\setcounter{table}{0}
+\renewcommand{\thetable}{5.\arabic{table}}
+\renewcommand{\theHtable}{chapter5.\arabic{table}}
+\setcounter{figure}{0}
+\renewcommand{\thefigure}{5.\arabic{figure}}
+\renewcommand{\theHfigure}{chapter5.\arabic{figure}}
+\setcounter{chapter}{5}
+\setcounter{section}{0}
+\setcounter{subsection}{0}
+
+\addcontentsline{toc}{chapter}{5. METHODOLOGY}
+
+\chaptertitle{5}{METHODOLOGY}
+\label{ch:5}
+
+\section{Solution Strategy}
+
+\begin{enumerate}[leftmargin=0.30in,itemsep=0.14in,parsep=0pt]
+\justifying
+
+\item
+Every document is converted into a vector once using a Sentence Transformer model \cite{reimers2019sentence} and saved on disk. At each step, the original question is converted in the same way and compared with every document. Closer documents get a higher score, so the selection stays related to what was asked without relying on the question alone.
+
+\item
+MIGRES \cite{wang2025migres} creates small queries for the information that is still missing. Each query is converted into a vector and compared with every document, and closer documents get a higher score. In the first step there are no gaps, so this score is not used. This gives priority to documents that fill the gap.
+
+\item
+The useful information already extracted by MIGRES is treated as the collected evidence. A document that is very similar to this evidence gets a lower score, and a document that brings something new gets a higher score. In the first step every document is treated as new. This prefers complementary documents over redundant ones.
+
+\item
+The three scores are combined using weights to give one final score per document. The weights are chosen on validation data using Bayesian optimization \cite{snoek2012practical} and fixed before testing. All documents are scored at every step, and the top-$K$ documents are sent to MIGRES, which updates the evidence and gaps. Only the retrieval step of MIGRES is replaced.
+
+\end{enumerate}
+
+\section{Proposed Solution}
+
+\justifying
+
+In iterative retrieval, a document may be relevant to the original question but may not give the information that is still missing. It may also repeat information that has already been collected. This leads to repeated retrieval and less useful evidence \cite{yadav2020iterative,pickett2024better,wang2025migres}.
+
+To address this, we propose \textbf{State Aware Retrieval (SAR)}, a retrieval method that replaces the document retrieval step inside MIGRES \cite{wang2025migres}. At each iteration, SAR uses three things: the original question $q$, the information gaps $G_t$ that are still missing, and the evidence $E_t$ collected so far.
+
+SAR converts the documents, question, gaps, and evidence into vectors using the same Sentence Transformer model. A document scores higher if it is related to the question or close to the missing information, and lower if it repeats the collected evidence. These three scores are combined into one final score using weights tuned on validation data, and the top-$K$ documents are selected.
+
+The selected documents are passed to MIGRES, which filters them, extracts evidence, and updates the gaps. SAR then uses the updated state in the next iteration. In the first iteration there are no gaps and no evidence, so the ranking depends only on the question.
+
+\clearpage
+
+% ------------------------------------------------------------
+\subsection{Architecture Diagram}
+% ------------------------------------------------------------
+
+MIGRES manages the iterative process and provides the question, the collected evidence, and the information gaps at each iteration. These are converted into vectors using the Sentence Transformer and compared with the stored document vectors. SAR combines the similarities into one score per document and selects the top-$K$ documents. The selected documents are passed back to MIGRES, which filters them, extracts evidence, and updates the state for the next iteration.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=8mm and 18mm,
+    box/.style={
+        rectangle,
+        draw,
+        rounded corners,
+        align=center,
+        minimum width=31mm,
+        minimum height=9mm,
+        font=\small
+    },
+    wide/.style={
+        rectangle,
+        draw,
+        rounded corners,
+        align=center,
+        minimum width=45mm,
+        minimum height=10mm,
+        font=\small
+    },
+    simbox/.style={
+        rectangle,
+        draw,
+        rounded corners,
+        align=center,
+        minimum width=38mm,
+        minimum height=9mm,
+        font=\small
+    },
+    arrow/.style={
+        ->,
+        >=stealth,
+        thick
+    },
+    line/.style={
+        thick
+    }
+]
+
+% ------------------------------------------------------------
+% Top level
+% ------------------------------------------------------------
+
+\node[box] (q)
+    {Original Question\\$q$};
+
+\node[box,below=of q] (state)
+    {MIGRES State\\$E_t,\;G_t$};
+\node[wide,right=28mm of state] (docs)
+    {Document Corpus\\$\mathcal{D}$};
+
+\node[wide,below=of docs] (docembed)
+    {Document Embeddings\\
+     Sentence Transformer};
+
+\node[wide,below=of state] (stateembed)
+    {Sentence Transformer\\Embed $q$, $G_t$, and $E_t$};
+
+% ------------------------------------------------------------
+% Similarity layer
+% ------------------------------------------------------------
+
+\node[simbox,below=16mm of stateembed] (rel)
+    {Question Relevance};
+
+\node[simbox,below=7mm of rel] (gap)
+    {Gap Similarity};
+
+\node[simbox,below=7mm of gap] (nov)
+    {Evidence Similarity};
+
+% ------------------------------------------------------------
+% Scoring and retrieval
+% ------------------------------------------------------------
+
+\node[wide,below=10mm of nov] (score)
+    {State Aware Retrieval\\Final Document Score};
+
+\node[wide,below=of score] (topk)
+    {Top-$K$ Retrieval};
+
+\node[wide,below=of topk] (migres)
+    {MIGRES Filtering and Evidence Extraction};
+
+\node[box,below=of migres] (update)
+    {Updated State\\$E_{t+1},\;G_{t+1}$};
+
+% ------------------------------------------------------------
+% Main flow
+% ------------------------------------------------------------
+
+\draw[arrow] (q) -- (state);
+
+\draw[arrow] (state) -- (stateembed);
+
+% Question also goes to the embedding stage
+\draw[arrow]
+    (q.east)
+    -- ++(12mm,0)
+    |- (stateembed.east);
+
+% Document corpus
+\draw[arrow] (docs) -- (docembed);
+
+% ------------------------------------------------------------
+% State embedding bus
+% ------------------------------------------------------------
+
+\coordinate (sbusTop) at ([xshift=-14mm]rel.west);
+\coordinate (sbusBottom) at ([xshift=-14mm]nov.west);
+
+\draw[line]
+    (stateembed.west)
+    -| (sbusTop)
+    -- (sbusBottom);
+
+\draw[arrow]
+    (sbusTop)
+    -- (rel.west);
+
+\draw[arrow]
+    (sbusTop |- gap.west)
+    -- (gap.west);
+
+\draw[arrow]
+    (sbusTop |- nov.west)
+    -- (nov.west);
+
+% ------------------------------------------------------------
+% Document embedding bus
+% ------------------------------------------------------------
+
+\coordinate (dbusTop) at ([xshift=47mm]rel.east);
+\coordinate (dbusBottom) at ([xshift=47mm]nov.east);
+
+\draw[line]
+    (docembed.south)
+    -| (dbusTop)
+    -- (dbusBottom);
+
+\draw[arrow]
+    (dbusTop)
+    -- (rel.east);
+
+\draw[arrow]
+    (dbusTop |- gap.east)
+    -- (gap.east);
+
+\draw[arrow]
+    (dbusTop |- nov.east)
+    -- (nov.east);
+
+% ------------------------------------------------------------
+% Similarity outputs to score
+% ------------------------------------------------------------
+
+\coordinate (scorebus) at ([xshift=24mm]nov.east);
+
+\draw[line]
+    (rel.east)
+    -- (scorebus |- rel.east);
+
+\draw[line]
+    (gap.east)
+    -- (scorebus |- gap.east);
+
+\draw[line]
+    (nov.east)
+    -- (scorebus |- nov.east);
+
+\draw[line]
+    (scorebus |- rel.east)
+    -- (scorebus |- score.east);
+
+\draw[arrow]
+    (scorebus |- score.east)
+    -- (score.east);
+
+% ------------------------------------------------------------
+% Retrieval and feedback
+% ------------------------------------------------------------
+
+\draw[arrow] (score) -- (topk);
+
+\draw[arrow] (topk) -- (migres);
+
+\draw[arrow] (migres) -- (update);
+
+\draw[arrow]
+    (update.west)
+    -- ++(-62mm,0)
+    |- (state.west);
+
+\end{tikzpicture}
+
+\caption{Architecture of State Aware Retrieval}
+\label{fig:sar-architecture}
+\end{figure}
+
+\clearpage
+
+% ------------------------------------------------------------
+\subsection{Operational Flow}
+% ------------------------------------------------------------
+
+The operational flow describes how the proposed system performs retrieval at each iteration. MIGRES provides the current question, evidence, and information gaps. These inputs are embedded and compared with the document corpus. State Aware Retrieval then scores and selects the top-$K$ documents, which are passed to MIGRES for filtering, evidence extraction, and state update. The updated state is used in the next iteration.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=0.30in,
+    flowbox/.style={draw,rounded corners,align=center,minimum width=3.05in,minimum height=0.48in,font=\small},
+    decision/.style={draw,rounded corners,align=center,minimum width=3.05in,minimum height=0.55in,font=\small},
+    arrow/.style={->,>=stealth,line width=0.7pt}
+]
+\node[flowbox] (question) {Question $q$};
+\node[flowbox,below=of question] (state) {MIGRES: Current State $E_t,G_t$};
+\node[flowbox,below=of state] (embed) {Sentence Transformer Embeddings};
+\node[flowbox,below=of embed] (compare) {Compare Every Document with $q$, $G_t$, and $E_t$};
+\node[flowbox,below=of compare] (score) {State Aware Retrieval: Final Document Scores};
+\node[flowbox,below=of score] (topk) {Top-$K$ Retrieval};
+\node[flowbox,below=of topk] (extract) {MIGRES: Filtering and Evidence Extraction};
+\node[flowbox,below=of extract] (update) {Update $E_{t+1}$ and $G_{t+1}$};
+\node[decision,below=0.32in of update] (stop) {Stopping condition reached?};
+\node[flowbox,below=0.38in of stop] (answer) {Final Answer Generation};
+
+\draw[arrow] (question) -- (state);
+\draw[arrow] (state) -- (embed);
+\draw[arrow] (embed) -- (compare);
+\draw[arrow] (compare) -- (score);
+\draw[arrow] (score) -- (topk);
+\draw[arrow] (topk) -- (extract);
+\draw[arrow] (extract) -- (update);
+\draw[arrow] (update) -- (stop);
+\draw[arrow] (stop) -- node[right]{Yes} (answer);
+\draw[arrow] (stop.west) -- ++(-22mm,0) node[above,midway]{No} |- (state.west);
+\end{tikzpicture}
+\caption{Operational Flow of State Aware Retrieval}
+\label{fig:sar-flow}
+\end{figure}
+
+\clearpage
+
+% ------------------------------------------------------------
+\section{Mathematical Formulation}
+\label{sec:math}
+
+At iteration $t$, the retrieval state contains the question $q$, the collected evidence $E_t$, the current information gap $G_t$, and the complete corpus $\mathcal{D}$. The retrieval method uses this state to assign one final score to every document in the corpus.
+
+\subsection{Notation}
+
+Let
+\[
+E_t=\{e_1,e_2,\ldots,e_n\}
+\]
+be the evidence collected before iteration $t$, and let
+\[
+G_t=\{g_1,g_2,\ldots,g_m\}
+\]
+be the information gaps identified by MIGRES. The searchable document corpus is:
+\[
+\mathcal{D}=\{d_1,d_2,\ldots,d_N\}.
+\]
+
+The current retrieval state is represented as:
+\[
+\boxed{(q,E_t,G_t,\mathcal{D})}.
+\]
+
+The first retrieval iteration is indexed $t=0$, and at this point there is no evidence and no gap, so $E_0=\emptyset$ and $G_0=\emptyset$. In the implementation, $E_t$ is the list of useful information that MIGRES has extracted so far, and $G_t$ is the list of sub-queries that MIGRES creates for the information that is still missing.
+
+\subsection{Corpus Embedding}
+
+Before retrieval begins, all documents in the corpus are encoded using the selected Sentence Transformer model. The resulting document embeddings are stored and reused during retrieval:
+\[
+\phi(d) \leftarrow \text{Sentence Transformer}(d).
+\]
+
+At the end of each retrieval iteration, the system checks whether any documents in the corpus are new or changed. A new document is converted into a vector with the same model and added to the stored vectors. A changed document is converted again and its old vector is replaced. Documents that have not changed are left as they are, so nothing is converted twice.
+
+\subsection{State Embedding}
+
+At each iteration, the question, current gaps, and collected evidence are encoded using the same Sentence Transformer:
+\[
+\phi(q),\qquad \phi(g_i),\qquad \phi(e_j).
+\]
+
+This places the question, gaps, evidence, and documents in the same semantic space.
+
+\subsection{Sentence Similarity}
+
+The semantic similarity between two text items $x$ and $y$ is measured using cosine similarity:
+\[
+\operatorname{cos}(x,y)=
+\frac{\phi(x)^T\phi(y)}{\|\phi(x)\|_2\|\phi(y)\|_2}.
+\]
+
+For the proposed scoring method, the value is normalized to the range $[0,1]$ using:
+\[
+\boxed{
+ s(x,y)=\frac{1+\operatorname{cos}(x,y)}{2}
+}
+\tag{1}
+\]
+
+A higher value means that the two representations are more semantically similar.
+
+\subsection{Question Relevance}
+
+Question relevance measures how close a document is to the original question $q$. It uses the similarity $s(d,q)$ from Eq.~1, which is a value between 0 and 1:
+\[
+\boxed{R(d,q)=s(d,q)}
+\tag{2}
+\]
+
+Here $R(d,q)$ is the question relevance score of document $d$. A higher value means the document is more related to the main question. This signal keeps the retrieved documents on the topic of the question.
+
+\subsection{Gap Coverage}
+
+At iteration $t$, MIGRES provides $m$ information gaps $G_t=\{g_1,\dots,g_m\}$, where each $g_i$ is a sub-query for one piece of missing information. First, the document $d$ is compared with each gap separately:
+\[
+\boxed{c(d,g_i)=s(d,g_i)}
+\tag{3}
+\]
+
+Here $c(d,g_i)$ is the score of document $d$ for the single gap $g_i$. A high value means the document is close to that missing piece.
+
+Next, the scores for all gaps are averaged into one value:
+\[
+\boxed{
+C(d,G_t)=\frac{1}{m}\sum_{i=1}^{m}c(d,g_i)
+}
+\tag{4}
+\]
+
+A higher $C(d,G_t)$ means the document is closer to the information that is still missing. At the first iteration there are no gaps ($G_0=\emptyset$), so the gap coverage is set to $C(d,G_0)=0$. If no gap is left after an iteration, MIGRES can stop the retrieval.
+
+\subsection{Evidence Novelty}
+
+Evidence novelty measures how much new information a document brings compared with the evidence $E_t=\{e_1,\dots,e_n\}$ already collected by MIGRES. First, the document $d$ is compared with every evidence item $e_j$ using $s(d,e_j)$, and the highest value is kept. This highest value shows how much the document repeats its closest piece of evidence. The novelty score is then one minus this value:
+\[
+\boxed{
+N(d,E_t)=1-\max_{e_j\in E_t}s(d,e_j)
+}
+\tag{5}
+\]
+
+A document that is very similar to some collected evidence has a high maximum similarity, so it receives a low novelty value. A document that is not similar to any collected evidence receives a high novelty value. At the first iteration no evidence has been collected, so every document is treated as fully new:
+\[
+\boxed{N(d,E_0)=1.}
+\tag{6}
+\]
+
+\subsection{State Aware Document Score}
+
+The three signals are combined into one final score for every document. Each signal is multiplied by a weight and the results are added:
+\[
+\boxed{
+S_t(d\mid q,E_t,G_t)=
+\alpha R(d,q)+\beta C(d,G_t)+\gamma N(d,E_t)
+}
+\tag{7}
+\]
+
+The weights are never negative and together they add up to one:
+\[
+\boxed{
+\alpha,\beta,\gamma\geq0,
+\qquad
+\alpha+\beta+\gamma=1.
+}
+\tag{8}
+\]
+
+Here, $\alpha$ controls how much question relevance matters, $\beta$ controls how much gap coverage matters, and $\gamma$ controls how much novelty matters. The weights are needed because the three signals work in different directions. Relevance and gap coverage reward documents that are similar to the question or the missing information, while novelty rewards documents that are different from the collected evidence. An unrelated document is very different from the evidence and can therefore receive a high novelty score. The weights balance the signals so that novelty does not outweigh relevance. At the first iteration, $C=0$ and $N=1$ for every document, so only $R(d,q)$ changes the order of the documents.
+
+\subsection{Top-$K$ Retrieval}
+
+After the final score $S_t$ is calculated for every document in the corpus $\mathcal{D}$, the documents are ranked from the highest score to the lowest. The $K$ documents with the highest scores form the retrieval result:
+\[
+\boxed{
+T_t=\operatorname{TopK}_{d\in\mathcal{D}} S_t(d\mid q,E_t,G_t)
+}
+\tag{9}
+\]
+
+Here $T_t$ is the set of documents selected at iteration $t$, and $K$ is the number of documents returned. No fixed similarity threshold is used before the Top-$K$ selection, so the $K$ best-scored documents are always returned.
+
+\subsection{Iterative State Update}
+
+The selected documents $T_t$ are passed to MIGRES for filtering and information extraction. The useful extracted information is added to the evidence state, and MIGRES identifies the remaining gap for the next iteration:
+\[
+\boxed{
+(q,E_t,G_t,\mathcal{D})
+\rightarrow
+T_t
+\rightarrow
+(E_{t+1},G_{t+1})
+\rightarrow
+T_{t+1}
+}
+\tag{10}
+\]
+
+The process continues until MIGRES determines that enough information has been collected or the MIGRES iteration limit (5 by default) is reached.
+\clearpage
+
+% ------------------------------------------------------------
+\section{State Aware Retrieval Configurations}
+
+Table~\ref{tab:sar-settings} lists the main configuration of the proposed State Aware Retrieval system. It specifies the models, similarity method, retrieval space, document embedding setup, and other tools used in the project.
+
+\begin{table}[H]
+\centering
+\caption{State Aware Retrieval Configuration}
+\label{tab:sar-settings}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{|p{1.75in}|p{1.35in}|p{3.0in}|}
+\hline
+\textbf{Setting} & \textbf{Value} & \textbf{Purpose} \\ \hline
+Embedding model & multi-qa-mpnet-\allowbreak base-cos-v1 & Creates common semantic representations for questions, documents, gaps, and evidence. \\ \hline
+Similarity function & Cosine similarity & Measures semantic similarity between embedding vectors. \\ \hline
+Retrieval space & Complete document corpus $\mathcal{D}$ & Every document is considered during State Aware Retrieval. \\ \hline
+Document embeddings & Precomputed and maintained & Stored once and updated when new or changed documents appear. \\ \hline
+Framework & MIGRES & Provides the iterative evidence and information-gap state. \\ \hline
+LLM API & gemini-3.5-flash-lite & Language model used by MIGRES, called through the Gemini API in the same request format as the original MIGRES code. \\ \hline
+\end{tabular}
+\end{table}
+
+The weights $\alpha$, $\beta$, and $\gamma$ (Table~\ref{tab:sar-hyperparameters}) follow the constraint in Eq.~8 and are fixed before the final test evaluation. The value of $K$ (50) follows the candidate pool size of the original MIGRES retriever. The iteration limit (5) and the stopping rule are also taken from MIGRES, so all three are the same for SAR and every baseline. SAR and every baseline also use the same language model and call settings, with the default temperature of the provider.
+
+\begin{table}[H]
+\centering
+\caption{State Aware Retrieval Hyperparameters}
+\label{tab:sar-hyperparameters}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{|p{1.3in}|p{2.0in}|p{2.8in}|}
+\hline
+\textbf{Hyperparameter} & \textbf{Role} & \textbf{Selection} \\ \hline
+$\alpha$ & Question relevance weight & Bayesian optimization on validation data. \\ \hline
+$\beta$ & Gap coverage weight & Bayesian optimization on validation data. \\ \hline
+$\gamma$ & Evidence novelty weight & Bayesian optimization on validation data. \\ \hline
+\end{tabular}
+\end{table}
+\clearpage
+% ------------------------------------------------------------
+\section{Datasets and Model}
+% ------------------------------------------------------------
+
+\subsection{Datasets}
+
+The evaluation uses three question-answering datasets from the MIGRES setting. Together they cover multi-hop reasoning and open-domain question answering:
+
+\subsubsection{HotpotQA}
+
+HotpotQA \cite{yang2018hotpotqa} is a question-answering dataset with about 113,000 questions written by crowd workers using Wikipedia articles. Each question needs facts from two or more different paragraphs, so a single passage is not enough to answer it.
+
+The data is plain Wikipedia text. Questions are either of the \textit{bridge} type, where one fact leads to the next, or of the \textit{comparison} type, where two things are compared. Each question has a short answer, such as a name, a number, or yes/no. The exact sentences that prove the answer are also marked as supporting facts, so it is possible to check whether the right evidence was retrieved. In the distractor setting, each question comes with 10 paragraphs, of which 2 are correct and 8 are distractors. In the full-wiki setting, the evidence must be searched from all of Wikipedia.
+
+Every question is stored as one record with fields such as the following:
+
+\begin{center}
+\begin{tabular}{|p{1.4in}|p{4.6in}|}
+\hline
+\textbf{Field} & \textbf{Example} \\ \hline
+\texttt{question} & Were Scott Derrickson and Ed Wood of the same nationality? \\ \hline
+\texttt{answer} & yes \\ \hline
+\texttt{supporting\_facts} & Page titles and sentence numbers of the proof sentences \\ \hline
+\texttt{context} & The Wikipedia paragraphs given for the question \\ \hline
+\texttt{type} & comparison (or bridge) \\ \hline
+\texttt{level} & easy, medium, or hard \\ \hline
+\end{tabular}
+\end{center}
+
+\subsubsection{MuSiQue}
+
+MuSiQue \cite{trivedi2022musique} is a dataset of about 25,000 questions that cannot be answered in one step. Each question needs two to four steps, where the answer to one step is used to answer the next. The questions are made by joining simple one-step questions from other datasets into a longer chain. The data is text from Wikipedia. Each question comes with 20 paragraphs, of which only a few are correct and the rest are distractors, and the dataset also gives the one-step questions that make up the chain. It is built so that a model cannot guess the answer through a shortcut and has to find every step.
+
+Every question is stored as one record with fields such as the following:
+
+\begin{center}
+\begin{tabular}{|p{2.2in}|p{3.8in}|}
+\hline
+\textbf{Field} & \textbf{Content} \\ \hline
+\texttt{question} & The full multi-step question \\ \hline
+\texttt{question\_\allowbreak decomposition} & The smaller one-step questions, in order \\ \hline
+\texttt{paragraphs} & The 20 paragraphs, each with a title, text, and a mark showing if it is a correct (supporting) paragraph \\ \hline
+\texttt{answer} & The short final answer \\ \hline
+\texttt{answer\_aliases} & Other accepted ways to write the answer \\ \hline
+\texttt{answerable} & True or false \\ \hline
+\end{tabular}
+\end{center}
+
+\subsubsection{Natural Questions}
+
+Natural Questions \cite{kwiatkowski2019natural} consists of real questions that people typed into Google search, so they sound natural and are often short. The data is Wikipedia pages. For each question, a person read the page and marked the answer, or marked that the page has no answer. Most questions need only one passage, so the dataset is a good test of standard open-domain question answering. It has more than 300,000 training questions.
+
+Every question is stored as one record with fields such as the following:
+
+\begin{center}
+\begin{tabular}{|p{1.6in}|p{4.4in}|}
+\hline
+\textbf{Field} & \textbf{Content} \\ \hline
+\texttt{question\_text} & The search query, e.g., who sings what a wonderful world \\ \hline
+\texttt{document} & The Wikipedia page found for the question \\ \hline
+\texttt{long\_answer} & The paragraph that contains the answer, or empty if none \\ \hline
+\texttt{short\_answers} & The exact answer words from that paragraph, or empty \\ \hline
+\texttt{yes\_no\_answer} & Yes, no, or none \\ \hline
+\end{tabular}
+\end{center}
+
+\subsection{Models}
+
+\begin{table}[H]
+\centering
+\caption{Models used in SAR, MIGRES, and baseline systems.}
+\label{tab:models}
+\begin{tabular}{|c|p{5.0cm}|p{8.0cm}|}
+\hline
+\textbf{\#} & \textbf{Model} & \textbf{Role} \\
+\hline
+1 &
+\texttt{sentence-transformers/\allowbreak multi-qa-mpnet-\allowbreak base-cos-v1}
+(768-d) &
+Sentence Transformer used for document, question, information-gap, and evidence embeddings in SAR. The same model is used for SAR cosine-similarity scoring and the Sentence Transformer Search baseline. \\
+\hline
+2 &
+\texttt{gemini-3.5-flash-lite} &
+Language model used by MIGRES for evidence extraction, information-gap detection, sub-query generation, and final answer generation. The same model and call settings are used across SAR and all baselines. \\
+\hline
+3 &
+\texttt{BAAI/bge-reranker-base} &
+Cross-encoder reranker used by MIGRES to filter and rerank retrieved passages after each retrieval step. \\
+\hline
+\end{tabular}
+\end{table}
+
+\clearpage
+% ------------------------------------------------------------
+\section{Experimental Design}
+
+The experiments evaluate State Aware Retrieval from several perspectives. The study includes hyperparameter selection, comparison with existing retrieval methods, ablation testing, retrieval performance evaluation, iterative state analysis, downstream RAG and robustness evaluation, and computational cost analysis. The validation data are used to tune the scoring weights, and the selected weights are then fixed before the final test evaluation.
+
+% ------------------------------------------------------------
+\subsection{Hyperparameter Selection}
+
+SAR scores each document using three signals: question relevance, gap coverage, and evidence novelty. The weights $\alpha$, $\beta$, and $\gamma$ (Table~\ref{tab:sar-hyperparameters}) set how much each signal counts.
+
+The best balance between the three signals is not known in advance. The weights are non-negative and sum to one (Eq.~8), so only two values are free. They are selected before all other experiments using Bayesian optimization \cite{snoek2012practical}, a search method that learns from earlier trials and chooses the next weights that look most promising. It suits this task because each trial needs a full MIGRES run, so only a few trials are affordable.
+
+\begin{itemize}[leftmargin=0.25in,itemsep=0.06in,parsep=0pt]
+\item \textbf{Trials:} 10 in total, where the first 3 use random weights and the next 7 are proposed by the optimizer.
+\item \textbf{One trial:} SAR is run within MIGRES with the candidate weights on 8 validation questions from each of the three datasets, and the trial is scored by the mean Recall@$K$.
+\item \textbf{Seed:} one fixed random seed is used, so that the search can be repeated.
+\item \textbf{Result:} the weights with the best score are selected, fixed, and used in all later experiments.
+\end{itemize}
+
+Only validation data are used, so the evaluation questions do not influence the weights.
+
+% ------------------------------------------------------------
+\subsection{Baseline Comparison}
+
+State Aware Retrieval is compared with four established retrieval methods, listed in Table~\ref{tab:baseline-comparison}. All methods use the same document corpus, evaluation questions, and retrieval depth. Each baseline replaces the SAR retrieval step inside the same MIGRES loop. When MIGRES sends several queries, the highest score of each document is kept before the common Top-$K$ selection and filtering steps. Only SAR uses the Sentence Transformer model; the baselines use their own representations.
+
+\begin{table}[H]
+\centering
+\caption{Information Retrieval Baseline Comparison}
+\label{tab:baseline-comparison}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{|p{1.55in}|p{1.40in}|p{3.10in}|}
+\hline
+\textbf{System} & \textbf{Type} & \textbf{Main Retrieval Basis} \\ \hline
+BM25 & Sparse lexical &
+Term frequency, inverse document frequency, and document length
+\cite{robertson2009bm25} \\ \hline
+
+DPR & Dense &
+Question and passage embeddings learned with a dual encoder
+\cite{karpukhin2020dpr} \\ \hline
+
+Contriever & Dense &
+Unsupervised dense representations for semantic retrieval
+\cite{izacard2022contriever} \\ \hline
+
+MMR & Lexical, diversity-aware &
+BM25 candidates re-ranked by maximal marginal relevance
+\cite{carbonell1998mmr} \\ \hline
+
+State Aware Retrieval & Hybrid &
+Question relevance, gap coverage, and evidence novelty \\ \hline
+\end{tabular}
+\end{table}
+% ------------------------------------------------------------
+\subsection{Ablation Study}
+
+The ablation study measures the contribution of each signal used by State Aware Retrieval. The full SAR configuration is compared with versions in which individual signals or the weight tuning are removed.
+
+\begin{itemize}[leftmargin=0.25in,itemsep=0.06in,parsep=0pt]
+\item \textbf{SAR-Full:} question relevance, gap coverage, and evidence novelty, with the weights selected by Bayesian optimization.
+\item \textbf{SAR-Without-Relevance:} removes question relevance.
+\item \textbf{SAR-Without-Gap:} removes gap coverage.
+\item \textbf{SAR-Without-Evidence:} removes evidence novelty.
+\item \textbf{SAR-Without-Tuning:} keeps all three signals but does not use the optimized weights. Equal weights $\alpha=\beta=\gamma=\tfrac{1}{3}$ are used instead.
+\item \textbf{Question-Only:} uses only the similarity between the document and the original question.
+\end{itemize}
+
+The weights of SAR-Full are frozen and are not re-tuned for the ablation variants. When a signal is removed, the remaining weights are renormalized so that they still sum to one, and Question-Only places weight $1$ on question relevance. SAR-Without-Tuning uses equal weights ($\tfrac{1}{3}$ each) to show how much the weight tuning itself contributes. All variants use the same corpus, embedding model, retrieval depth $K$, and evaluation protocol, and they are compared using the retrieval and downstream metrics defined in the following subsections.
+
+% ------------------------------------------------------------
+\subsection{Retrieval Performance Evaluation}
+
+The retrieval experiment evaluates the quality of the documents selected by State Aware Retrieval. The SAR configuration fixed after validation is compared with the baselines on the raw ranking of each retriever, before the MIGRES filter is applied. For each question, the Top-$K$ documents are checked against the relevant documents of the dataset, and each metric is averaged over all evaluation questions.
+
+\begin{itemize}[leftmargin=0.25in,itemsep=0.06in,parsep=0pt]
+\item \textbf{Recall@$K$:} the share of the relevant documents that appear in the Top-$K$. It shows how much of the needed evidence is retrieved.
+\item \textbf{Precision@$K$:} the share of the Top-$K$ documents that are relevant. It shows how clean the retrieved set is.
+\item \textbf{Hit@$K$:} whether at least one relevant document appears in the Top-$K$ (1 if yes, 0 if no).
+\item \textbf{Mean Reciprocal Rank (MRR):} the average of one divided by the rank of the first relevant document, taken as 0 if none is retrieved. A higher value means that a relevant document appears earlier.
+\item \textbf{nDCG@$K$:} how good the ranking order is. Relevant documents placed higher count more, and the score is compared with the best possible order \cite{jarvelin2002cumulated}.
+\end{itemize}
+
+Only the metrics supported by the relevance labels of a dataset are reported. Questions without usable relevance labels are excluded from the retrieval metrics instead of being counted as failures.
+
+% ------------------------------------------------------------
+\subsection{Iterative State Analysis}
+
+State Aware Retrieval is intended to change its retrieval behavior as the evidence and information gaps change. This experiment studies the retrieved documents across successive iterations. In the results, iterations are counted from 1, so the first iteration corresponds to $t=0$ in Section~\ref{sec:math}, and the comparison between consecutive iterations starts from the second iteration.
+
+\begin{itemize}[leftmargin=0.25in,itemsep=0.06in,parsep=0pt]
+\item \textbf{Cumulative recall:} the share of the relevant documents found up to the current iteration.
+\item \textbf{Marginal recall gain:} the additional relevant documents found at the current iteration compared with the previous iterations.
+\item \textbf{New document rate:} the share of the documents retrieved at the current iteration that were not retrieved in any earlier iteration.
+\item \textbf{Retrieval overlap:} how much the documents retrieved at the current iteration overlap with those of the previous iteration.
+\end{itemize}
+
+Together, these measures show whether the changing evidence and gaps lead to different and complementary retrieval results at each iteration.
+
+% ------------------------------------------------------------
+\subsection{Downstream RAG and Robustness Evaluation}
+\label{sec:downstream}
+
+State Aware Retrieval is evaluated within the MIGRES framework to measure its effect on the final answer. SAR and the baselines use the same MIGRES configuration and language model. The common MIGRES filter is applied after every retriever, so the answer metrics reflect the filtered evidence. The number of documents kept by the filter is recorded separately, because the filter can change which of the retrieved documents reach the answer step.
+
+\subsubsection{Answer Evaluation}
+
+Answer quality is measured with the official metrics of each dataset where available. Questions without gold answers are excluded.
+
+\begin{itemize}[leftmargin=0.25in,itemsep=0.06in,parsep=0pt]
+\item \textbf{Exact Match (EM):} the share of answers that exactly match a gold answer.
+\item \textbf{Accuracy:} the share of correct answers, checked by normalized exact match against the gold answers and their aliases. No substring match or language-model judge is used.
+\item \textbf{Token-level F1:} the word overlap between the predicted answer and the gold answer, which gives partial credit to partly correct answers \cite{rajpurkar2016squad}.
+\end{itemize}
+
+\subsubsection{RGB Robustness}
+
+The Retrieval-Augmented Generation Benchmark (RGB) tests robustness in four settings \cite{chen2024rgb}:
+
+\begin{itemize}[leftmargin=0.25in,itemsep=0.06in,parsep=0pt]
+\item \textbf{Noise robustness:} answer accuracy when irrelevant documents are mixed into the retrieved set, at different noise levels.
+\item \textbf{Negative rejection:} how often the system correctly refuses to answer when the documents contain no answer.
+\item \textbf{Information integration:} answer accuracy on questions that need information from several documents.
+\item \textbf{Counterfactual robustness:} how often the system detects wrong information in the documents (error detection) and corrects it (error correction).
+\end{itemize}
+
+SAR and the selected baselines use the same settings. RGB is used only for this evaluation, and its fixed passages are not added to the corpus $\mathcal{D}$. Because retrieval always returns a fixed number of documents with no similarity threshold, a system cannot refuse to answer by retrieving nothing. Negative rejection is therefore judged on the final answer produced after the MIGRES filter.
+
+% ------------------------------------------------------------
+\subsection{Computational Cost Analysis}
+
+SAR scores every document in the corpus at each iteration, so it may need more computation than a method that scores only a candidate list. This experiment measures that extra cost. SAR and the baselines run in the same MIGRES loop with the same corpus, the same $K$, and the same language model settings, so any difference in cost comes from the retrieval method alone.
+
+\begin{itemize}[leftmargin=0.25in,itemsep=0.06in,parsep=0pt]
+\item \textbf{Index build time:} the one-time time needed to embed the corpus and store the document vectors.
+\item \textbf{Retrieval latency:} the average time taken by the retrieval step per iteration, split into the time to embed the question, gaps, and evidence and the time to score the documents.
+\item \textbf{Scoring workload:} the number of documents scored and the number of similarity calculations per question.
+\item \textbf{Language model usage:} the number of language model calls and tokens per question.
+\end{itemize}
+
+The retrieval overhead of SAR is reported as its extra time compared with each baseline. Only the retrieval step is timed separately, because the other MIGRES steps are the same for all methods. The results show whether the retrieval quality gained by SAR justifies its added cost.
+
+% ------------------------------------------------------------
+\section{Chapter Solution Summary}
+
+This chapter presented State Aware Retrieval (SAR) as a direct retrieval
+method within the MIGRES framework. SAR uses the current question,
+information gaps, and collected evidence to guide document selection
+from the complete document corpus.
+
+The documents are represented in a common Sentence Transformer
+embedding space. At each iteration, the documents are compared with the
+current retrieval state, and the final score is used to select the
+Top-$K$ documents. The selected documents are then passed to MIGRES for
+filtering, evidence extraction, and state update.
+
+SAR scores the complete corpus directly, with no fixed retrieval threshold. The scoring formulation is defined in Section~\ref{sec:math}, and its weights are selected using validation data. The experiments evaluate the contribution of each state signal, compare SAR with existing retrieval methods, measure retrieval and downstream RAG performance, study its behavior across iterations, and measure its computational cost. The next chapter lists the software and hardware needed to carry out this work.
+\label{ch:5:end}
+
+\clearpage
+
+% ============================================================
+% CHAPTER 6
+% SOFTWARE AND HARDWARE REQUIREMENTS
+% ============================================================
+
+\setcounter{table}{0}
+\renewcommand{\thetable}{6.\arabic{table}}
+\renewcommand{\theHtable}{chapter6.\arabic{table}}
+
+\addcontentsline{toc}{chapter}{6. SOFTWARE AND HARDWARE REQUIREMENTS}
+
+\chaptertitle{6}{SOFTWARE AND HARDWARE REQUIREMENTS}
+\label{ch:6}
+
+\justifying
+
+The proposed solution uses a Python-based environment for dataset
+preparation, document embedding, State Aware Retrieval, hyperparameter
+selection, MIGRES integration, and evaluation. Jupyter Notebook is used
+for experiment development and analysis, and LaTeX is used to prepare
+this report. The main software and hardware requirements are described
+below.
+
+\section*{6.1 Software Requirements}
+
+\begin{table}[H]
+\centering
+\caption{Software Requirements}
+\label{tab:software-requirements}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{|p{1.65in}|p{1.45in}|p{2.95in}|}
+\hline
+\textbf{Software / Tool} & \textbf{Version} & \textbf{Purpose} \\ \hline
+
+Python & 3.12.10 &
+Main programming environment for data processing, document embedding,
+retrieval, and evaluation. \\ \hline
+
+Visual Studio Code & 1.131 &
+Experiment development, execution, and result analysis. \\ \hline
+
+PyTorch & 2.13.0 &
+Tensor computation and neural model execution. \\ \hline
+
+Sentence Transformers & 5.6.1 &
+Generates semantic embeddings for questions, documents, information
+gaps, and evidence using
+\texttt{multi-qa-mpnet-base-cos-v1}. \\ \hline
+
+Bayesian Optimization & 3.3.0 &
+Selects the State Aware Retrieval scoring hyperparameters using
+validation data. \\ \hline
+
+LaTeX & Overleaf &
+Preparation of the research document. \\ \hline
+
+Gemini API & gemini-3.5-flash-lite &
+Provides the language model used by MIGRES for information-gap
+processing and response generation. \\ \hline
+
+\end{tabular}
+\end{table}
+\clearpage
+% ------------------------------------------------------------
+\section*{6.2 Modules Description}
+
+The proposed State Aware Retrieval system is divided into four
+main modules: the MIGRES Module, the Embedding and Corpus Module, the
+Scoring Module, and the Selection Module. Their responsibilities are
+summarized in Table~\ref{tab:module-description}, and they follow the
+order of the retrieval process described in Chapter~5.
+
+\begin{table}[H]
+\centering
+\caption{Modules Description}
+\label{tab:module-description}
+\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{|p{1.75in}|p{4.3in}|}
+\hline
+\textbf{Module} & \textbf{Responsibility} \\ \hline
+
+MIGRES Module &
+Provides the question, the collected evidence, and the information gaps
+at each iteration. It also filters the selected documents, extracts
+evidence, and updates the state for the next iteration. \\ \hline
+
+Embedding and Corpus Module &
+Uses the Sentence Transformer to convert the documents into vectors once
+and store them on disk. It also converts the question, gaps, and
+evidence into vectors at each iteration. New or changed documents are
+added or updated in the store. \\ \hline
+
+Scoring Module &
+Compares each document with the question, the gaps, and the evidence.
+It calculates question relevance, gap coverage, and evidence novelty,
+and combines them into one final score. \\ \hline
+
+Selection Module &
+Ranks the documents by the final score and selects the Top-$K$
+documents. These are passed to MIGRES for the next step. \\ \hline
+
+\end{tabular}
+\end{table}
+
+\section*{6.3 Hardware Requirements}
+
+The proposed system can be implemented on a standard computer
+with internet access. The main hardware requirements are:
+
+\begin{itemize}
+    \item \textbf{CPU:} Intel Core i5 (or equivalent) or higher multi-core processor.
+    \item \textbf{RAM:} At least 16 GB.
+    \item \textbf{Storage:} At least 20 GB of free SSD space.
+    \item \textbf{GPU:} CUDA-compatible NVIDIA GPU with at least 8 GB of VRAM.
+    \item \textbf{Network:} Stable internet connection for the language model API and pretrained model downloads.
+\end{itemize}
+\label{ch:6:end}
+
+\clearpage
+
+% ============================================================
+% CHAPTER 7
+% IMPLEMENTATION
+% ============================================================
+
+\setcounter{table}{0}
+\renewcommand{\thetable}{7.\arabic{table}}
+\renewcommand{\theHtable}{chapter7.\arabic{table}}
+\setcounter{figure}{0}
+\renewcommand{\thefigure}{7.\arabic{figure}}
+\renewcommand{\theHfigure}{chapter7.\arabic{figure}}
+\setcounter{chapter}{7}
+\setcounter{section}{0}
+\setcounter{subsection}{0}
+
+\addcontentsline{toc}{chapter}{7. IMPLEMENTATION}
+\chaptertitle{7}{IMPLEMENTATION}
+\label{ch:7}
+\justifying
+
+% ============================================================
+\section{Introduction}
+% ============================================================
+
+This chapter describes the implementation of the proposed SAR-based
+retrieval system within the MIGRES framework. It first presents the
+development environment, including the hardware and software used. It
+then explains how the system is organized and integrated, covering the
+document corpus and embedding pipeline, the MIGRES module, and the SAR
+retrieval module. The SAR algorithm is then given in pseudocode, and the
+chapter ends with the workflow used to execute the prepared experiments.
+
+\tikzset{
+    implbox/.style={draw,rounded corners=2pt,align=center,text width=2.2cm,minimum height=1.15cm,inner sep=3pt,font=\scriptsize,execute at begin node={\hyphenpenalty=10000\relax}},
+    implar/.style={->,>=stealth,line width=0.65pt}
+}
+
+% ============================================================
+\section{Development Environment}
+% ============================================================
+
+\subsection{Hardware Environment}
+
+The experiments are executed using a Google Colab managed runtime with an NVIDIA Tesla T4 GPU. The T4 provides 16~GB of GDDR6 GPU memory and 2,560 CUDA cores. Google Colab provides the CPU, system memory, and temporary runtime storage as part of the managed notebook environment, with the exact allocation depending on the runtime instance. The experiments therefore use the following compute environment.
+
+\begin{table}[H]
+\centering
+\caption{Hardware Environment}
+\label{tab:hardware-environment}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{|p{2.2in}|p{3.8in}|}
+\hline
+\textbf{Component} & \textbf{Specification} \\
+\hline
+Execution Environment & Google Colab managed runtime \\
+\hline
+GPU & NVIDIA Tesla T4 \\
+\hline
+GPU Memory & 16~GB GDDR6 \\
+\hline
+CUDA Cores & 2,560 \\
+\hline
+CPU & Colab-managed virtual CPU \\
+\hline
+System Memory & Colab-managed runtime memory \\
+\hline
+Storage & Temporary runtime storage provided by Colab \\
+\hline
+Internet & Required for model downloads, dataset access, and language model API calls \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Software Environment}
+
+The implementation is developed in Python using Visual Studio Code, while the experiments are executed through Jupyter notebooks in Google Colab. The main software components used in the experimental pipeline are summarized in Table~\ref{tab:software-environment}.
+
+\begin{table}[H]
+\centering
+\caption{Software Environment}
+\label{tab:software-environment}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{|p{2.35in}|p{3.65in}|}
+\hline
+\textbf{Software / Tool} & \textbf{Purpose} \\
+\hline
+Python & Core implementation and experiment pipeline \\
+\hline
+Visual Studio Code & Development and code management \\
+\hline
+Jupyter Notebook & Execution and analysis of experiments \\
+\hline
+PyTorch & Model inference and tensor computation \\
+\hline
+Sentence Transformers & Document and retrieval-state embeddings \\
+\hline
+Bayesian Optimization & Selection of SAR weighting parameters \\
+\hline
+MIGRES Framework & Iterative retrieval and evidence processing \\
+\hline
+Google Gemini API & Language model operations within MIGRES \\
+\hline
+Local Disk-backed Vector Store & Storage of precomputed document embeddings \\
+\hline
+YAML Configuration & Management of model, retrieval, and experiment settings \\
+\hline
+\end{tabular}
+\end{table}
+
+% ============================================================
+\section{System Implementation}
+% ============================================================
+
+The proposed system is implemented by integrating the SAR retrieval method into the existing MIGRES framework. The implementation is organized into three main components that work together during retrieval. The document corpus and embedding module first prepares the searchable corpus by processing the documents, generating their embeddings, and storing the resulting vectors in the vector store. This preparation is completed before the experiments are executed. During retrieval, MIGRES manages the question-answering process and maintains the current retrieval state, while the SAR module uses the query and state information together with the precomputed document vectors to calculate relevance, gap coverage, and evidence novelty and select the Top-$K$ documents. The retrieved documents are then returned to MIGRES for filtering, evidence extraction, and state updating before the next iteration.
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    box/.style={
+        draw,
+        rounded corners,
+        align=center,
+        minimum height=8mm,
+        text width=25mm,
+        font=\small
+    },
+    modulebox/.style={
+        draw,
+        rounded corners,
+        align=center,
+        minimum height=11mm,
+        text width=40mm,
+        font=\small
+    },
+    sarbox/.style={
+        draw,
+        rounded corners,
+        align=center,
+        minimum height=8mm,
+        text width=28mm,
+        font=\small
+    },
+    arrow/.style={
+        ->,
+        thick
+    }
+]
+
+% Document Corpus and Embedding Module
+\node[modulebox] (corpus) at (3.2,2.5)
+{Document Corpus and\\Embedding Module};
+
+% Retrieval pipeline
+\node[box] (query) at (-3.2,0) {User Query};
+\node[box] (migres) at (0,0) {MIGRES\\State};
+\node[sarbox] (sar) at (4.0,0) {SAR Retrieval\\Module};
+\node[box] (docs) at (7.6,0) {Retrieved\\Documents};
+\node[box] (processing) at (10.8,0) {MIGRES\\Processing};
+
+\draw[arrow] (query) -- (migres);
+\draw[arrow] (migres) -- (sar);
+\draw[arrow] (sar) -- (docs);
+\draw[arrow] (docs) -- (processing);
+
+% Corpus and embedding module to SAR
+\draw[arrow]
+    (corpus.south)
+    -- ++(0,-8mm)
+    -| (sar.north);
+
+% Iteration feedback
+\draw[arrow]
+    (processing.south)
+    |- ++(0,-10mm)
+    -| node[pos=0.25,below,font=\scriptsize]{next iteration}
+    (migres.south);
+
+\end{tikzpicture}
+\caption{Overall System Implementation Flow}
+\label{fig:system-implementation}
+\end{figure}
+
+\subsection{Document Corpus and Embedding Module}
+
+This module prepares the document collection used by the SAR retriever. Its purpose is to convert the source datasets into a common searchable format and create the vector representations required for retrieval. The module performs four main stages: dataset preparation, passage chunking, document embedding, and vector storage. The resulting vector store is then used by SAR during document scoring and Top-$K$ selection.
+
+The module consists of the following stages:
+
+\begin{figure}[H]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}
+\node[implbox] (c) at (0,0) {Corpus};
+\node[implbox] (p) at (3.2,0) {Processing and Chunking};
+\node[implbox] (stm) at (6.4,0) {Sentence Transformer};
+\node[implbox] (de) at (9.6,0) {Document Embeddings};
+\node[implbox] (vs) at (12.8,0) {Vector Store};
+\draw[implar] (c)--(p); \draw[implar] (p)--(stm); \draw[implar] (stm)--(de); \draw[implar] (de)--(vs);
+\end{tikzpicture}}
+\caption{Corpus Preparation and Embedding Pipeline}
+\label{fig:impl-corpus-flow}
+\end{figure}
+
+\subsection{MIGRES Module}
+
+MIGRES is the base framework that manages the iterative question-answering process. It maintains the information required at each iteration and controls how retrieved documents are processed until the question can be answered or the stopping condition is reached.
+
+In this project, MIGRES provides the main execution flow, while SAR is integrated as the retrieval method within that flow. The MIGRES implementation can be viewed through two main parts: the retrieval state maintained during each iteration and the processing stage that handles the retrieved documents and updates this state.
+
+The MIGRES state contains the original question $q$, the evidence collected up to iteration $t$, denoted by $E_t$, and the remaining information gaps $G_t$. This state is provided to the retrieval stage for each iteration. After retrieval, MIGRES processes the returned documents through filtering and evidence extraction. It then checks whether sufficient information is available. If further information is required, new queries are generated, the state is updated, and the next retrieval iteration begins.
+
+\begin{figure}[H]
+\centering
+
+\resizebox{0.98\textwidth}{!}{%
+\begin{tikzpicture}[
+    box/.style={
+        draw,
+        rounded corners,
+        align=center,
+        minimum height=8mm,
+        text width=22mm,
+        font=\scriptsize
+    },
+    smallbox/.style={
+        draw,
+        rounded corners,
+        align=center,
+        minimum height=7mm,
+        text width=20mm,
+        font=\scriptsize
+    },
+    decision/.style={
+        diamond,
+        draw,
+        align=center,
+        aspect=2,
+        text width=18mm,
+        font=\scriptsize
+    },
+    arrow/.style={
+        ->,
+        thick
+    }
+]
+
+% ---------------- MIGRES STATE ----------------
+
+\node[smallbox] (query) at (0,2)
+{Original Question\\$q$};
+
+\node[smallbox] (evidence) at (0,0)
+{Collected Evidence\\$E_t$};
+
+\node[smallbox] (gaps) at (0,-2)
+{Information Gaps\\$G_t$};
+
+\node[box] (state) at (2.7,0)
+{MIGRES State\\$q,\ E_t,\ G_t$};
+
+\draw[arrow] (query.east) -| (state.north);
+\draw[arrow] (evidence.east) -- (state.west);
+\draw[arrow] (gaps.east) -| (state.south);
+
+% ---------------- SAR ----------------
+
+\node[box] (sar) at (5.8,0)
+{SAR Retrieval\\Scoring + Top-$K$};
+
+\draw[arrow] (state) -- (sar);
+
+% ---------------- DOCUMENTS ----------------
+
+\node[box] (docs) at (8.9,0)
+{Retrieved\\Documents};
+
+\draw[arrow] (sar) -- (docs);
+
+% ---------------- MIGRES PROCESSING ----------------
+
+\node[smallbox] (filter) at (11.4,1.2)
+{Document\\Filtering};
+
+\node[smallbox] (extract) at (11.4,0)
+{Evidence\\Extraction};
+
+\node[decision] (check) at (11.4,-1.4)
+{Answerable?};
+
+\draw[arrow] (docs) |- (filter);
+\draw[arrow] (filter) -- (extract);
+\draw[arrow] (extract) -- (check);
+
+% ---------------- DECISION ----------------
+
+\node[smallbox] (answer) at (14.1,-2.7)
+{Final\\Answer};
+
+\node[smallbox] (generate) at (14.1,-0.2)
+{Query\\Generation};
+
+\node[smallbox] (update) at (14.1,2.0)
+{State Update\\$E_{t+1},G_{t+1}$};
+
+% Yes path
+\draw[arrow]
+    (check.south)
+    |- node[pos=0.75,below,font=\tiny]{Yes}
+    (answer.west);
+
+% No path
+\draw[arrow]
+    (check.east)
+    -| node[pos=0.25,above,font=\tiny]{No}
+    (generate.south);
+
+\draw[arrow] (generate) -- (update);
+
+% Next iteration
+\draw[arrow]
+    (update.north)
+    |- ++(0,0.8)
+    -| node[pos=0.25,above,font=\tiny]{Next Iteration}
+    (state.north);
+
+\end{tikzpicture}%
+}
+
+\caption{MIGRES State and Processing Flow with SAR Integration}
+\label{fig:migres-state-processing}
+\end{figure}
+
+\subsection{SAR Module}
+
+State-Aware Retrieval (SAR) is the retrieval method proposed in this project. It selects documents based on the current retrieval state rather than using only the original question. The state consists of the question $q$, the collected evidence $E_t$, and the remaining information gaps $G_t$.
+
+SAR uses three components to score each candidate document: question relevance, gap coverage, and evidence novelty. These components measure how relevant a document is to the question, how well it addresses the remaining information gaps, and how much new information it provides beyond the evidence already collected. The three scores are combined using the SAR weighting formulation defined in Chapter~5.
+
+The resulting SAR score is used to rank the candidate documents, and the highest-ranked $K$ documents are selected as the retrieval output. In this implementation, $K=50$. The selected documents are then returned to MIGRES for further processing. The overall SAR retrieval flow is shown in Figure~\ref{fig:sar-module}.
+
+\begin{figure}[H]
+\centering
+
+\begin{tikzpicture}[
+    node distance=3mm and 5mm,
+    box/.style={
+        draw,
+        rounded corners,
+        align=center,
+        minimum height=8mm,
+        text width=15mm,
+        font=\scriptsize
+    },
+    arrow/.style={
+        ->,
+        thick
+    }
+]
+
+% Main flow
+\node[box] (state) {MIGRES State\\$q,\ E_t,\ G_t$};
+
+\node[box, right=of state] (encoding)
+{State\\Encoding};
+
+\node[box, right=of encoding] (candidates)
+{Candidate\\Documents};
+
+% SAR scoring components
+\node[box, above right=9mm and 8mm of candidates] (relevance)
+{Question\\Relevance};
+
+\node[box, right=of candidates] (gap)
+{Gap\\Coverage};
+
+\node[box, below right=9mm and 8mm of candidates] (novelty)
+{Evidence\\Novelty};
+
+% Score and selection
+\node[box, right=4mm of gap] (score)
+{SAR Score};
+
+\node[box, right=of score] (topk)
+{Top-$K$\\Selection};
+
+\node[box, right=of topk] (docs)
+{Retrieved\\Documents};
+
+\node[box, right=of docs] (processing)
+{MIGRES\\Processing};
+
+% Main flow
+\draw[arrow] (state) -- (encoding);
+\draw[arrow] (encoding) -- (candidates);
+
+% Scoring branches
+\draw[arrow] (candidates) -- (relevance);
+\draw[arrow] (candidates) -- (gap);
+\draw[arrow] (candidates) -- (novelty);
+
+% Merge into SAR score
+\draw[arrow] (relevance.east) -| (score.north);
+\draw[arrow] (gap.east) -- (score.west);
+\draw[arrow] (novelty.east) -| (score.south);
+
+% Final flow
+\draw[arrow] (score) -- (topk);
+\draw[arrow] (topk) -- (docs);
+\draw[arrow] (docs) -- (processing);
+
+% Vector store input
+\node[box, above=12mm of candidates]
+(vector) {Vector Store};
+
+\draw[arrow] (vector) -- (candidates);
+
+\end{tikzpicture}
+
+\caption{Architecture of the SAR Retrieval Module}
+\label{fig:sar-module}
+\end{figure}
+
+\clearpage
+% ============================================================
+\section{SAR Pseudocode}
+% ============================================================
+
+State-Aware Retrieval (SAR) is executed at each retrieval iteration of
+MIGRES. At iteration $t$, SAR receives the question $q$, the current
+evidence $E_t$, the current information gaps $G_t$, and the document
+embeddings stored in the vector store. For each document $d$, SAR
+computes three signals: question relevance $R(d,q)$, gap coverage
+$C(d,G_t)$, and evidence novelty $N(d,E_t)$. These signals are combined
+using the fixed weights $(\alpha,\beta,\gamma)$ to obtain the
+state-aware score
+
+\[
+S_t(d)
+=
+\alpha R(d,q)
++
+\beta C(d,G_t)
++
+\gamma N(d,E_t).
+\]
+
+The documents are ranked according to this score, and the highest-scoring
+$K$ documents are returned to MIGRES. MIGRES then filters the retrieved
+documents, extracts evidence, and updates the retrieval state for the
+next iteration.
+
+The following pseudocode summarizes the SAR procedure executed at
+iteration $t$.
+
+\medskip
+\noindent\begin{minipage}{\textwidth}
+\noindent\rule{\textwidth}{0.8pt}\\[-2pt]
+\noindent\textbf{Algorithm 7.1:} State-Aware Retrieval (SAR)\\[-6pt]
+\noindent\rule{\textwidth}{0.4pt}
+
+\noindent\textbf{Input:}
+question $q$, evidence $E_t$, gaps $G_t$, document vector store
+$\mathcal{V}$, weights $(\alpha,\beta,\gamma)$, retrieval depth $K$
+
+\noindent\textbf{Output:}
+ordered Top-$K$ documents $T_t$
+
+\medskip
+\noindent\begin{tabular}{@{}r@{\hspace{0.9em}}l@{}}
+
+1: & Encode $q$, all $g_i\in G_t$, and all $e_j\in E_t$ \\
+
+2: & $L \leftarrow \emptyset$ \\
+
+3: & \textbf{for each} document block $B$ in $\mathcal{V}$ \textbf{do} \\
+
+4: & \hspace{1.5em}Compute $R(d,q)$ for all $d\in B$ \\
+
+5: & \hspace{1.5em}\textbf{if} $G_t=\emptyset$ \textbf{then}
+$C(d,G_t)\leftarrow0$ \\
+
+6: & \hspace{1.5em}\textbf{else}
+$C(d,G_t)\leftarrow
+\frac{1}{|G_t|}
+\sum_{g_i\in G_t}s(d,g_i)$ \\
+
+7: & \hspace{1.5em}\textbf{if} $E_t=\emptyset$ \textbf{then}
+$N(d,E_t)\leftarrow1$ \\
+
+8: & \hspace{1.5em}\textbf{else}
+$N(d,E_t)\leftarrow
+1-\max_{e_j\in E_t}s(d,e_j)$ \\
+
+9: & \hspace{1.5em}Compute
+$S_t(d)\leftarrow
+\alpha R(d,q)+\beta C(d,G_t)+\gamma N(d,E_t)$ \\
+
+10: & \hspace{1.5em}Add the highest-scoring candidates from $B$ to $L$ \\
+
+11: & \textbf{end for} \\
+
+12: & Rank $L$ by $S_t(d)$ in deterministic order \\
+
+13: & $T_t\leftarrow$ Top-$K$ documents from $L$ \\
+
+14: & \textbf{return} $T_t$ \\
+
+\end{tabular}
+
+\noindent\rule{\textwidth}{0.8pt}
+\end{minipage}
+\clearpage
+
+% ============================================================
+% ============================================================
+% SECTION 7.5  EXPERIMENTAL SETUP AND EXECUTION PLAN
+% Paste this in place of the old "Experimental Setup and Execution Plan"
+% section in Chapter 7 (everything from that \section up to, but not
+% including, \section{Implementation Summary}).
+% Needs: tikz libraries positioning, fit, calc (already loaded),
+%        \figplaceholder (already defined), citation.bib (updated).
+% ============================================================
+
+\section{Experimental Setup and Execution Plan}
+
+The experimental setup defines how the proposed system is configured, executed, and evaluated in practice. The experiments involve connecting the implemented modules into complete execution pipelines, preparing the required inputs and configurations, running the defined experimental conditions, and recording the outputs produced by each run. The setup is designed to ensure that the same procedures can be executed consistently across different experimental configurations, while preserving the results and intermediate information required for subsequent analysis and comparison.
+
+\subsection{Connecting SAR with MIGRES}
+
+MIGRES is not rewritten. Its official code is cloned separately, found
+through the \texttt{MIGRES\_REPO\_DIR} setting, and loaded as it is.
+\texttt{migres\_adapter.py} builds a small subclass of its batched
+retrieval class that overrides only two methods:
+
+\begin{itemize}[leftmargin=1.8em,itemsep=2pt]
+    \item \texttt{search()}, which MIGRES calls whenever it needs
+    documents. Our version hands the current state to the retriever
+    instead of MIGRES's own searcher. The cross-encoder filter
+    \cite{xiao2024cpack} that follows is still the MIGRES one.
+    \item \texttt{askGPT()}, which sends the MIGRES prompts through
+    \texttt{llm.py} to Gemini \cite{gemini2023}, using the same request
+    format as the original code.
+\end{itemize}
+
+Query generation, filtering, evidence extraction, and the stopping rule
+stay inside MIGRES. At each call the adapter only passes
+$(q, E_t, G_t)$, as defined in Section~5.3.1, to \texttt{retrieval.py}
+and later records which documents the filter kept. For SAR,
+\texttt{pipeline.py} also runs the new-or-changed document check from
+Section~5.3.2 between iterations.
+
+The baselines use the same hook. The only thing that changes between
+two systems is the retriever that \texttt{pipeline.py} builds from the
+YAML configuration, so the comparison in Section~5.6.2 differs only in
+retrieval.
+
+\subsection{Code-Level Architecture}
+
+Figure~\ref{fig:experimental-code-architecture} replaces each module of
+Table~\ref{tab:module-description} with the Python files that implement
+it. Boxes are \texttt{.py} files, rounded boxes are data files, and
+arrows show the direction of data flow.
+
+\begin{figure}[!htbp]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+    py/.style={draw,rounded corners=2pt,align=center,minimum height=9mm,
+               text width=26mm,inner sep=2pt,font=\scriptsize},
+    dt/.style={draw,rounded corners=6pt,align=center,minimum height=9mm,
+               text width=26mm,inner sep=2pt,font=\scriptsize,fill=black!6},
+    ar/.style={->,>=stealth,line width=0.6pt},
+    lab/.style={font=\scriptsize\bfseries,anchor=north west,inner sep=2pt},
+    grp/.style={draw,dashed,rounded corners=4pt,inner sep=6pt}
+]
+
+% ---------- Embedding and Corpus Module ----------
+\node[py] (prep)  at (0,0)    {\texttt{prepare\_}\\\texttt{corpus.py}};
+\node[py] (cb)    at (3.1,0)  {\texttt{corpus\_}\\\texttt{builder.py}};
+\node[dt] (cj)    at (6.2,0)  {\texttt{pooled\_train\_}\\\texttt{corpus.jsonl}};
+\node[py] (be)    at (9.3,0)  {\texttt{build\_}\\\texttt{embeddings.py}};
+\node[py] (cp)    at (12.4,0) {\texttt{corpus.py}\\\texttt{embeddings.py}};
+\node[dt] (vs)    at (15.5,0) {\texttt{vector\_store.py}\\vectors on disk};
+\draw[ar] (prep)--(cb); \draw[ar] (cb)--(cj); \draw[ar] (cj)--(be);
+\draw[ar] (be)--(cp);   \draw[ar] (cp)--(vs);
+\node[grp,fit=(prep)(cb)(cj)(be)(cp)(vs),label={[font=\scriptsize\bfseries,anchor=south west,inner sep=1pt]north west:Embedding and Corpus Module (run once)}] (gA) {};
+
+% ---------- Experiment control ----------
+\node[py] (nb)   at (0,-2.5)    {Notebooks 01--07\\\texttt{run\_single.py}\\\texttt{run\_batch.py}};
+\node[py] (er)   at (3.1,-2.5)  {\texttt{experiment\_}\\\texttt{runner.py}};
+\node[py] (cfg)  at (6.2,-2.5)  {\texttt{config.py}\\\texttt{configs/*.yaml}};
+\node[py] (pl)   at (9.3,-2.5)  {\texttt{pipeline.py}};
+\draw[ar] (nb)--(er); \draw[ar] (er)--(pl);
+\draw[ar] (cfg)--(pl);
+\node[grp,fit=(nb)(er)(cfg)(pl),label={[font=\scriptsize\bfseries,anchor=south west,inner sep=1pt]north west:Experiment Control (per run)}] (gB) {};
+
+% ---------- MIGRES Module ----------
+\node[py] (ad)   at (3.1,-5.0)  {\texttt{migres\_}\\\texttt{adapter.py}};
+\node[py] (llm)  at (0,-5.0)    {\texttt{llm.py}\\(Gemini)};
+\draw[ar] (ad)--(llm);
+\node[grp,fit=(ad)(llm),label={[font=\scriptsize\bfseries,anchor=south west,inner sep=1pt]north west:MIGRES Module}] (gC) {};
+
+% ---------- Selection and Scoring ----------
+\node[py] (rt)   at (12.4,-5.0) {\texttt{retrieval.py}};
+\node[py] (sc)   at (15.5,-5.0) {\texttt{scoring.py}\\\texttt{similarity.py}};
+\draw[ar,<->] (rt.east) -- (sc.west);
+\node[grp,fit=(rt)(sc),label={[font=\scriptsize\bfseries,anchor=north west,inner sep=1pt]south west:Selection and Scoring Modules}] (gD) {};
+
+% ---------- Output and evaluation ----------
+\node[py] (out)  at (3.1,-7.5) {\texttt{outputs.py}};
+\node[dt] (runf) at (6.2,-7.5) {JSONL, JSON, CSV, report.md};
+\node[py] (ev)   at (9.3,-7.5) {\texttt{evaluation.py}\\\texttt{experiment\_}\\\texttt{runner.py}};
+\node[dt] (met)  at (12.4,-7.5) {metrics, tables, analysis};
+\draw[ar] (out)--(runf); \draw[ar] (runf)--(ev); \draw[ar] (ev)--(met);
+\node[grp,fit=(out)(runf)(ev)(met),label={[font=\scriptsize\bfseries,anchor=north west,inner sep=1pt]south west:Output and Evaluation}] (gE) {};
+
+% ---------- data flow between modules ----------
+\draw[ar] (vs.south) -- ++(0,-1.1) -| node[pos=0.25,above,font=\tiny]{vectors} (rt.north);
+\draw[ar] (pl.south) -- ++(0,-0.7) -| (ad.north);
+\draw[ar] (ad.east) -- node[above,font=\tiny]{$q,E_t,G_t$} (rt.west);
+\draw[ar] (ad.south) -- node[left,font=\tiny]{result, trace} (out.north);
+
+\end{tikzpicture}%
+}
+\caption{Code-Level Experimental Execution Architecture}
+\label{fig:experimental-code-architecture}
+\end{figure}
+
+\texttt{scoring.py} (with \texttt{similarity.py}) only does the
+arithmetic of Section~5.3. \texttt{retrieval.py} encodes the state, reads
+the stored vectors block by block, merges the block winners into the
+final Top-$K$, and builds the retrieval trace.
+
+\subsection{Data Splits and Corpus Preparation}
+
+Before any run, \texttt{prepare\_corpus.py} builds the corpus $\mathcal{D}$
+from the \emph{training} passages of HotpotQA, MuSiQue, and Natural
+Questions. Passages are deduplicated and cut into chunks of at most 350
+tokens with a 50-token overlap, and the pool is capped at 100{,}000
+passages. \texttt{build\_embeddings.py} then embeds this corpus once and
+stores the vectors, so no retrieval method re-embeds it.
+
+The two uses of the data never overlap. For weight selection, a fixed
+10\% holdout of each training split is used (seed 13). For the final
+evaluation, the labeled development split is used, because most of
+these benchmarks keep their test answers hidden.
+
+\subsection{SAR Scoring in the Code}
+
+Figures~\ref{fig:code-scoring-equation} to~\ref{fig:code-migres-hook} show
+the files that carry the method itself. Eq.~7 is a single line in
+\texttt{sar\_score()}. The three signals come from
+\texttt{score\_components()}, which compares a whole block of document
+vectors against the stacked question, gap, and evidence vectors in one
+matrix product. \texttt{retrieve()} repeats this block by block, keeps
+the best $K$ of each block, and ranks the merged candidates by score,
+breaking ties by document id so that every run gives the same order.
+
+\figplaceholder
+{figures/code_scoring_equation.png}
+{1.55in}
+{\texttt{scoring.py}: the SAR score, \texttt{sar\_score()}.}
+{code-scoring-equation}
+
+\figplaceholder
+{figures/code_scoring_components.png}
+{1.75in}
+{\texttt{scoring.py}: relevance, gap coverage, and evidence novelty, \texttt{score\_components()}.}
+{code-scoring-components}
+
+\figplaceholder
+{figures/code_retrieval_loop.png}
+{1.75in}
+{\texttt{retrieval.py}: block-wise scoring and Top-$K$ merge inside \texttt{retrieve()}.}
+{code-retrieval-loop}
+
+\figplaceholder
+{figures/code_migres_hook.png}
+{1.55in}
+{\texttt{migres\_adapter.py}: \texttt{search()}, the point where SAR replaces the MIGRES retrieval step.}
+{code-migres-hook}
+
+\subsection{Experiments and Execution Control}
+
+Each experiment is one notebook, and every notebook calls the same
+\texttt{SARMigresPipeline}; none of them contains retrieval logic.
+Table~\ref{tab:execution-files} lists them. Notebook~01 runs first and
+writes the selected weights to \texttt{selected\_config.json}, together
+with $K$ and the full trial history. Notebooks 02, 03, 06, and 07 read
+that file and use the weights as they are. Notebooks 04 and 05 run no
+retrieval at all and only read finished runs.
+
+\begin{table}[H]
+\centering
+\caption{Experimental Execution Files}
+\label{tab:execution-files}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{|p{0.38in}|p{1.9in}|p{2.3in}|p{1.4in}|}
+\hline
+\textbf{No.} & \textbf{Notebook} & \textbf{What it does} & \textbf{Output folder} \\
+\hline
+01 & \texttt{01\_parameter\_\allowbreak hyperparameter\_\allowbreak selection.ipynb}
+& Bayesian search of $(\alpha,\beta,\gamma)$ on the holdout; saves the frozen weights.
+& \texttt{01\_parameter\_\allowbreak selection} \\
+\hline
+02 & \texttt{02\_baseline\_\allowbreak comparison.ipynb}
+& Runs SAR and every baseline through the same MIGRES loop, on each dataset.
+& \texttt{02\_baseline\_\allowbreak comparison} \\
+\hline
+03 & \texttt{03\_ablation\_\allowbreak study.ipynb}
+& Runs the SAR ablation variants with the frozen weights.
+& \texttt{03\_ablation} \\
+\hline
+04 & \texttt{04\_retrieval\_\allowbreak performance.ipynb}
+& Retrieval metrics and paired tests from finished runs.
+& reads runs of 02, 03 \\
+\hline
+05 & \texttt{05\_iterative\_state\_\allowbreak analysis.ipynb}
+& Per-iteration measures from the retrieval traces.
+& reads runs of 02, 03 \\
+\hline
+06 & \texttt{06\_downstream\_rag\_\allowbreak robustness.ipynb}
+& Runs SAR and baselines for answer metrics; scores the RGB cases.
+& \texttt{06\_downstream\_rag} \\
+\hline
+07 & \texttt{07\_computational\_\allowbreak cost.ipynb}
+& Runs a timed SAR run and, if a baseline run is given, compares retrieval time with it.
+& \texttt{07\_computational\_\allowbreak cost} \\
+\hline
+\end{tabular}
+\end{table}
+
+The baselines run in notebooks 02 and 06 are the ones listed in
+\texttt{experiments.yaml}: BM25 \cite{robertson2009bm25}, MMR
+\cite{carbonell1998mmr}, DPR \cite{karpukhin2020dpr}, Contriever
+\cite{izacard2022contriever}, SPLADE \cite{formal2021splade}, ColBERTv2
+\cite{santhanam2022colbertv2}, Sentence Transformer Search, and
+InfoGain-RAG \cite{wang2025infogain}. InfoGain-RAG is skipped, not
+replaced, when its checkpoint is not supplied.
+
+Notebooks 02, 03, 06, and 07 contain a \texttt{RUN\_EXPERIMENT} flag. It
+is \texttt{False} by default, so opening a notebook only prints the plan
+(methods, datasets, frozen weights, split). It is set to \texttt{True}
+only after the corpus, the vectors, the selected weights, and the API
+key have been checked.
+
+Methods are compared on the same question ids. Differences are tested
+with paired bootstrap confidence intervals and paired randomisation tests
+\cite{efron1993bootstrap,smucker2007comparison}, using 2{,}000 resamples
+and a fixed seed.
+
+\subsection{Run Output and Result Format}
+
+A run writes everything into one folder named after its run id. The
+files are listed in Table~\ref{tab:run-output-files}. The two JSONL files
+are written while the run is going, one line at a time, so an
+interrupted run keeps what it finished. The CSV files and the report are
+produced when the run ends.
+
+\begin{table}[H]
+\centering
+\caption{Files Written by Each Run}
+\label{tab:run-output-files}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{|p{1.55in}|p{0.7in}|p{3.55in}|}
+\hline
+\textbf{File} & \textbf{Format} & \textbf{Content} \\
+\hline
+\texttt{results.jsonl} & JSONL
+& One line per question: final answer, gold answer, status, time, LLM calls and tokens. \\
+\hline
+\texttt{traces.jsonl} & JSONL
+& One line per iteration: gaps, evidence, ranked documents with their scores ($R$, $C$, $N$ for SAR), weights, $K$, documents scored, similarity count, embedding and scoring time, documents kept by the filter. \\
+\hline
+\texttt{config\_\allowbreak snapshot.json}, \texttt{metadata.json} & JSON
+& The settings and run details (seed, corpus, package versions, warnings) needed to repeat the run. \\
+\hline
+\texttt{traces.csv} & CSV
+& The trace as a flat table, one row per retrieved document. \\
+\hline
+\texttt{summary.csv} & CSV
+& One row per question with answer, iterations, and time. \\
+\hline
+\texttt{report.md} & Markdown
+& Readable summary with a score table for every iteration. \\
+\hline
+\end{tabular}
+\end{table}
+
+The analysis notebooks never rebuild numbers by hand. Retrieval and
+iteration metrics are read from \texttt{traces.jsonl}, answer metrics from
+\texttt{results.jsonl}, and cost metrics from both together with
+\texttt{metadata.json}. Figure~\ref{fig:example-run-output} will show a
+real record.
+
+\figplaceholder
+{figures/example_run_output.png}
+{1.75in}
+{Example of one question in \texttt{results.jsonl} and one iteration in \texttt{traces.jsonl}.}
+{example-run-output}
+
+\subsection{Setup Status}
+
+The corpus pipeline, the SAR--MIGRES connection, the experiment
+notebooks, and the output format are now in place. The experimental
+setup and execution plan are therefore complete. The next step is to
+execute them in this order: notebook~01 to select and freeze the weights,
+notebooks 02, 03, 06, and 07 to produce the runs, and notebooks 04 and 05
+to analyze them.
+
+
+\section{Implementation Summary}
+% ============================================================
+
+This chapter presented the implementation of the proposed SAR--MIGRES
+system. The implementation provides the SAR retrieval procedure,
+document embedding and vector-store preparation, MIGRES integration,
+baseline retrieval interfaces, evaluation components, and the
+experiment execution infrastructure.
+
+The SAR implementation follows the state-aware scoring formulation
+defined in Chapter~5. At each MIGRES retrieval iteration, the current
+question, information gaps, and collected evidence are used to compute
+question relevance, gap coverage, and evidence novelty for the
+candidate documents. The resulting scores are used to select the
+Top-$K$ documents, which are returned to MIGRES for filtering, evidence
+extraction, and state update.
+
+The retrieval procedure is implemented in the shared Python source
+under \texttt{src/sar\_migres}, while the seven Jupyter notebooks serve
+as experiment drivers. The notebooks use the same execution and
+evaluation path for SAR and the baseline methods. The experiment
+outputs are recorded in machine-readable files such as
+\texttt{results.jsonl} and \texttt{traces.jsonl}, together with the
+configuration and metadata required to interpret each run.
+
+The implementation and experimental infrastructure are prepared for
+execution. The final experimental runs and result generation remain
+pending and are therefore not presented as completed results in this
+chapter.
+
+\label{ch:7:end}
+
+\clearpage
+
+% ============================================================
+% CHAPTER 7 -- APPLICATIONS
+% ============================================================
+
+\addcontentsline{toc}{chapter}{8. APPLICATIONS}
+\chaptertitle{8}{APPLICATIONS}
+\label{ch:8}
+\justifying
+
+Because SAR selects documents according to the current question, the missing information, and the evidence already collected, it can be useful in the following areas:
+
+\begin{enumerate}[leftmargin=0.30in,itemsep=0.12in]
+
+\item
+\textbf{Complex Question Answering:} SAR can support AI systems in answering complex questions where the required information is spread across multiple documents and cannot be obtained in a single retrieval step.
+
+\item
+\textbf{Multi-Step Information Retrieval:} SAR can be applied to systems that search for information repeatedly, helping each retrieval step focus on the information that has not yet been obtained.
+
+\item
+\textbf{Research and Knowledge Discovery:} SAR can help collect information from large document collections by prioritizing useful and complementary evidence instead of repeatedly retrieving similar content.
+
+\item
+\textbf{Evidence-Based RAG Applications:} SAR can be integrated into RAG-based applications that need to build a complete set of evidence before generating an answer, such as question answering, document analysis, and knowledge-based assistants.
+
+\end{enumerate}
+\clearpage
+
+
+% ============================================================
+% CHAPTER 8
+% GANTT CHART
+% ============================================================
+
+\setcounter{table}{0}
+\renewcommand{\thetable}{9.\arabic{table}}
+\renewcommand{\theHtable}{chapter9.\arabic{table}}
+\setcounter{figure}{0}
+\renewcommand{\thefigure}{9.\arabic{figure}}
+\renewcommand{\theHfigure}{chapter9.\arabic{figure}}
+
+\addcontentsline{toc}{chapter}{9. GANTT CHART}
+
+\chaptertitle{9}{GANTT CHART}
+\label{ch:9}
+
+\begin{figure}[H]
+\centering
+\vspace{0.15in}
+\IfFileExists{gantt_chart.png}{\includegraphics[width=0.95\textwidth]{gantt_chart.png}}{\fbox{\rule{0pt}{2.5in}\rule{5.5in}{0pt}}}
+\caption{Gantt Chart}
+\label{fig:gantt}
+\end{figure}
+
+\clearpage
+
+% ============================================================
+% CHAPTER 9
+% CONCLUSION
+% ============================================================
+
+\addcontentsline{toc}{chapter}{10. CONCLUSION}
+
+\chaptertitle{10}{CONCLUSION}
+\label{ch:10}
+
+\justifying
+
+This project presents \textbf{State Aware Retrieval (SAR)} as a
+direct retrieval method within the MIGRES framework. SAR uses the
+current question, the information gaps, and the previously collected
+evidence to guide document selection from the complete document corpus.
+The selected documents are then passed to MIGRES for filtering, evidence
+extraction, and further state updates.
+
+The study will examine whether making retrieval aware of the current
+information state can improve the quality and usefulness of the retrieved
+evidence during iterative retrieval. The contribution of each state
+signal will be studied through ablation experiments, while comparisons
+with established retrieval methods will measure the overall retrieval
+performance of SAR. The effect on final RAG performance, behavior across
+iterations, robustness, and computational cost will also be evaluated.
+
+Overall, this work provides a clear framework for testing whether
+State Aware Retrieval can make iterative retrieval more focused on the
+information that is relevant, still missing, and not already covered by
+previous evidence. The main MIGRES framework remains unchanged, so the
+study can directly examine the effect of the proposed retrieval
+method. The final experimental results will determine the effectiveness
+and practical value of SAR for iterative retrieval-augmented generation.
+
+\clearpage
+
+% ============================================================
+% REFERENCES
+% ============================================================
+
+\addcontentsline{toc}{chapter}{REFERENCES}
+
+\righttitle{REFERENCES}
+\label{ch:refs}
+
+\renewcommand{\bibname}{}
+
+\bibliographystyle{IEEEtran}
+\bibliography{citation}
+
+\end{document}

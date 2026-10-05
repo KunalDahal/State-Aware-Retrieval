@@ -1,0 +1,35 @@
+# Offline smoke-test configuration. No model downloads or APIs.
+embedding:
+  type: hashing
+  hashing_dim: 256
+  embed_template: "{title}. {text}"
+vector_store:
+  type: local
+retrieval:
+  method: sar
+sar:
+  alpha: 0.4
+  beta: 0.3
+  gamma: 0.3
+  k: 3
+  weighting: static
+baseline:
+  k: 3
+llm:
+  provider: offline_deterministic
+migres:
+  backend: standin
+  reranker: offline_standin
+  max_iter: 3
+  top_k: 3
+data:
+  corpus_path: data/sample/corpus.jsonl
+  corpus_lazy: false
+  dataset: sample
+  dataset_path: data/sample/questions.jsonl
+  split: test
+  max_documents: null
+run:
+  seed: 13
+  name: local_smoke
+  cache_root: data/cache

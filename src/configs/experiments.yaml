@@ -1,0 +1,76 @@
+status: executable_plan
+protocol:
+  corpus_definition: "Pooled passages from the training split of the three report datasets (HotpotQA, MuSiQue, Natural Questions), deduplicated and chunked to <=350 tokenizer tokens with 50-token overlap, bounded at 100,000 passages. The corpus is frozen for each benchmark run."
+  tuning_split: "deterministic 10% holdout from training data"
+  final_labeled_split: "dev"
+  final_split_reason: "Many benchmark test sets do not publish answer labels; public dev is used as the labeled final split unless a labeled test file is explicitly supplied."
+  retrieval_metric_scope: "raw retriever ranking before the common MIGRES filter; iterative cumulative metrics are computed across raw retrieval sets."
+  downstream_scope: "final answer metrics are measured after the identical MIGRES filtering, evidence extraction, state update and stopping path."
+  answer_accuracy: "normalized exact-answer correctness with gold aliases; no LLM judge or contains-match rule."
+  significance: "paired bootstrap confidence intervals and paired randomisation tests over common question IDs."
+
+splits:
+  tuning: validation_from_train
+  final_labeled: dev
+
+parameter_selection:
+  datasets: [hotpotqa, musique, natural_questions]   # report Sec. 5.5.1 / 5.6.1
+  validation_subset_per_dataset: 8                   # report Sec. 5.6.1
+  fixed_k: 50                                        # report Table 5.3 - NOT tuned
+  tuned: [alpha, beta, gamma]                        # report Table 5.2
+  bayesian_optimization:
+    enabled: true
+    parameterisation: simplex_uv
+    init_points: 3        # random trials   (report Sec. 5.6.1)
+    n_iter: 7             # optimizer-proposed trials
+    total_trials: 10      # = init_points + n_iter
+    seed: 13              # one fixed seed (BO start points and 10% holdout both use it)
+    objective: mean_final_recall_at_k
+    scope: global_across_three_datasets
+    budget_note: "10 trials in total (3 random + 7 optimizer-proposed); each trial runs the full MIGRES loop on the same 8 labeled validation questions from each of the three datasets (24 questions); the trial score is the mean Recall@K."
+
+weighting_modes:
+  static:
+    enabled: true
+    rule: "alpha_t=alpha, beta_t=beta, gamma_t=gamma"
+  dynamic:
+    enabled: false
+    rule: state_balanced_v1
+    formula: "alpha_t:beta_t:gamma_t = 1 : (1 + |G_t|/(1+|E_t|)) : (1 + 1/(1+|E_t|)); renormalize to sum to 1."
+    note: "Optional project-defined extension; disabled in the canonical scientific protocol because the supplied methodology does not provide an equation."
+
+ablations:
+  enabled: true
+  retune_weights: false
+  variants: [SAR-Full, SAR-Without-Relevance, SAR-Without-Gap, SAR-Without-Evidence, SAR-Without-Tuning, Question-Only]
+  protocol: "Freeze the full-SAR validation weights and K=50. SAR-Full uses the frozen weights; SAR-Without-Relevance, SAR-Without-Gap, and SAR-Without-Evidence zero the named component and renormalize the remaining two weights; SAR-Without-Tuning uses alpha=beta=gamma=1/3; Question-Only uses the original question inside SAR and is distinct from Sentence Transformer Search, which uses the current MIGRES query set."
+
+baselines:
+  enabled: true
+  systems: [bm25, mmr, dpr, contriever, splade, colbertv2, sentence_transformer_search, infogain_rag]
+  protocol: same_migres_loop
+  stack_rule: "Every baseline replaces the complete SAR retrieval stack. Only SAR and sentence_transformer_search instantiate the project Sentence Transformer; all other baselines use their native representations. InfoGain-RAG additionally requires a compatible published checkpoint and uses BM25 only as its first-stage candidate retriever."
+  migres_filter_note: "The same MIGRES cross-encoder filtering stage is applied after every retriever, so raw retrieval ranking and post-filter downstream performance are reported separately."
+
+metrics:
+  retrieval: [recall_at_k, precision_at_k, hit_at_k, mrr, ndcg_at_k]
+  iterative: [cumulative_recall, marginal_recall_gain, new_document_rate, retrieval_overlap]
+  answer: [exact_match, accuracy, token_f1]
+  cost: [index_build_time, retrieval_latency, embedding_time, scoring_time, documents_scored, similarity_calculations, iterations_to_termination, llm_calls, llm_estimated_tokens, retrieval_overhead_pct, memory]
+  statistics: [paired_bootstrap_ci, paired_permutation_pvalue]
+
+rgb:
+  enabled: true
+  mode: downstream_only
+  settings: [noise_robustness, negative_rejection, information_integration, counterfactual_robustness]
+  evaluator: RGBRobustnessEvaluation
+  note: "RGB is evaluated as an LLM/downstream robustness suite using its prepared cases. It is not treated as a retriever-corpus benchmark unless RGB passages are explicitly pooled into the evaluation corpus. Negative rejection is output-level because retrievers use fixed Top-K and have no abstention threshold."
+
+notebooks:
+  parameter_selection: 01_parameter_hyperparameter_selection.ipynb
+  baseline_comparison: 02_baseline_comparison.ipynb
+  ablation: 03_ablation_study.ipynb
+  retrieval_performance: 04_retrieval_performance.ipynb
+  iterative_state: 05_iterative_state_analysis.ipynb
+  downstream_rag: 06_downstream_rag_robustness.ipynb
+  computational_cost: 07_computational_cost.ipynb
