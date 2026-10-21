@@ -168,6 +168,7 @@ def cost_metrics_from_run(run_dir: str | Path) -> dict[str, Any]:
         "retrieval_overhead_pct": overhead,
         "n_questions": len(results),
         "peak_rss_mb": meta.get("peak_rss_mb"),
+        "resource_usage": meta.get("resource_usage", {}),
         "retrieval_method": meta.get("retrieval", {}).get("method"),
     }
 

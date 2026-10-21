@@ -9,6 +9,7 @@ from __future__ import annotations
 import importlib.metadata as md
 import json
 import platform
+import time
 import sys
 from pathlib import Path
 from typing import Any, Iterable
@@ -62,6 +63,13 @@ class SARMigresPipeline:
         self.sync_history: list[SyncReport] = []
         self.warnings: list[str] = []
         self.started = utc_now_iso()
+        self._process_cpu_started = time.process_time()
+        try:
+            import torch
+            if torch.cuda.is_available():
+                torch.cuda.reset_peak_memory_stats()
+        except (ImportError, RuntimeError):
+            pass
 
     @property
     def retrieval_method(self) -> str:
@@ -208,8 +216,25 @@ class SARMigresPipeline:
             "embedding_sync": self.sync_report.to_dict() if self.sync_report else None,
             "embedding_sync_history": [x.to_dict() for x in self.sync_history],
             "versions": _pkg_versions(), "argv": list(sys.argv), "peak_rss_mb": peak_rss_mb(),
+            "resource_usage": self._resource_usage(),
             "warnings": self.warnings,
         }
+
+    def _resource_usage(self) -> dict[str, Any]:
+        """Process level resource counters; CUDA values are null when unavailable."""
+        usage: dict[str, Any] = {"process_cpu_seconds": max(0.0, time.process_time() - self._process_cpu_started),
+                                 "peak_rss_mb": peak_rss_mb(), "gpu_name": None,
+                                 "gpu_peak_allocated_mb": None, "gpu_peak_reserved_mb": None}
+        try:
+            import torch
+            if torch.cuda.is_available():
+                device = torch.cuda.current_device()
+                usage["gpu_name"] = torch.cuda.get_device_name(device)
+                usage["gpu_peak_allocated_mb"] = round(torch.cuda.max_memory_allocated(device) / (1024 ** 2), 3)
+                usage["gpu_peak_reserved_mb"] = round(torch.cuda.max_memory_reserved(device) / (1024 ** 2), 3)
+        except (ImportError, RuntimeError):
+            pass
+        return usage
 
     def _provider(self, item: dict[str, Any]) -> RetrieverSearchProvider:
         qid = question_id_of(item)

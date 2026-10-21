@@ -54,3 +54,16 @@ MIGRES is kept outside the project package. The adapter enforces the scientific 
 ## Upstream MIGRES
 
 Populate `external/MIGRES/` with the expected upstream checkout before running the real MIGRES-backed protocol. The current repository intentionally does not silently replace the upstream dependency with a different implementation.
+
+## Run the experiments in Google Colab
+
+Open the notebooks from the `master` branch:
+
+- [00 Colab setup](https://colab.research.google.com/github/KunalDahal/State-Aware-Retrieval/blob/master/src/notebooks/00_colab_setup.ipynb)
+- [01 Parameter and hyperparameter selection](https://colab.research.google.com/github/KunalDahal/State-Aware-Retrieval/blob/master/src/notebooks/01_parameter_hyperparameter_selection.ipynb)
+- [02 Baseline comparison](https://colab.research.google.com/github/KunalDahal/State-Aware-Retrieval/blob/master/src/notebooks/02_baseline_comparison.ipynb)
+- [03 Ablation study](https://colab.research.google.com/github/KunalDahal/State-Aware-Retrieval/blob/master/src/notebooks/03_ablation_study.ipynb)
+
+Run notebook 00 from top to bottom first. It installs the research dependencies, mounts Google Drive, checks the pinned MIGRES checkout, and links `data/` and `outputs/` to persistent Drive storage. Add `GEMINI_API_KEY` in Colab Secrets and enable notebook access before experiments that call the LLM. Notebook 01 prepares the datasets and corpus; set `RUN_EXPERIMENT = True` only when you are ready to run its 10 tuning trials. After the frozen weights are saved, run notebooks 02 and 03. Notebooks 04–07 analyze completed runs and save JSON summaries and PNG plots in their experiment output directories.
+
+Experiment notebooks default to preflight mode. Running real experiments calls the configured LLM and may incur API charges. Keep the canonical protocol settings unchanged when producing research results.
