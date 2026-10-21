@@ -25,7 +25,7 @@ def validation_mean_recall_objective(config_paths: Sequence[str | Path], items: 
         overrides = {"retrieval": {"method": "sar"},
                      "sar": {"alpha": weights.alpha, "beta": weights.beta, "gamma": weights.gamma, "k": k, "weighting": "static"},
                      "run": {"name": name, "output_dir": str(Path(runs_root)), "resume": False}}
-        from .runner import run_pipeline_experiment
+        from .iterative import run_pipeline_experiment
         pipe, _ = run_pipeline_experiment(config_paths, items, overrides=overrides, experiment_name=name)
         from .iterative import retrieval_metrics_from_run
         metrics = retrieval_metrics_from_run(pipe.run_dir, items, pipe.corpus)
